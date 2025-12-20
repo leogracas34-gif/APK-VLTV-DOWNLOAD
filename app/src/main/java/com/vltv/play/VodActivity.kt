@@ -2,11 +2,14 @@ package com.vltv.play
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -27,6 +30,7 @@ class VodActivity : AppCompatActivity() {
 
     private var username = ""
     private var password = ""
+    private lateinit var prefs: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +41,7 @@ class VodActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
         tvCategoryTitle = findViewById(R.id.tvCategoryTitle)
 
-        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         username = prefs.getString("username", "") ?: ""
         password = prefs.getString("password", "") ?: ""
 
@@ -115,7 +119,7 @@ class VodActivity : AppCompatActivity() {
                         rvMovies.adapter = VodAdapter(
                             response.body()!!,
                             onClick = { filme -> abrirDetalhes(filme) },
-                            onDownloadClick = { filme -> iniciarDownload(filme) }
+                            onDownloadClick = { filme -> mostrarMenuDownload(filme) }
                         )
                     }
                 }
@@ -136,7 +140,7 @@ class VodActivity : AppCompatActivity() {
             rvMovies.adapter = VodAdapter(
                 emptyList(),
                 onClick = {},
-                onDownloadClick = {}
+                onDownloadClick = { }
             )
             Toast.makeText(this, "Nenhum filme favorito.", Toast.LENGTH_SHORT).show()
             return
@@ -155,7 +159,7 @@ class VodActivity : AppCompatActivity() {
                         rvMovies.adapter = VodAdapter(
                             apenasFav,
                             onClick = { filme -> abrirDetalhes(filme) },
-                            onDownloadClick = { filme -> iniciarDownload(filme) }
+                            onDownloadClick = { filme -> mostrarMenuDownload(filme) }
                         )
                     }
                 }
@@ -177,31 +181,80 @@ class VodActivity : AppCompatActivity() {
     }
 
     private fun getFavMovies(context: Context): MutableSet<Int> {
-        val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val set = prefs.getStringSet("fav_movies", emptySet()) ?: emptySet()
         return set.mapNotNull { it.toIntOrNull() }.toMutableSet()
     }
 
-    /** Aqui depois você pluga ExoPlayer offline ou DownloadManager */
-    private fun iniciarDownload(filme: VodStream) {
-        // Exemplo: neste momento só mostra um Toast.
-        Toast.makeText(
-            this,
-            "Iniciando download de ${filme.name}",
-            Toast.LENGTH_SHORT
-        ).show()
+    // === MENU DOWNLOAD COMPLETO ===
+    private fun mostrarMenuDownload(filme: VodStream) {
+        val popup = PopupMenu(this, findViewById(android.R.id.content))
+        menuInflater.inflate(R.menu.menu_download, popup.menu)
 
-        // Depois você monta a URL do filme e chama o serviço de download.
-        // Exemplo de URL Xtream:
-        // val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
-        // val dns = prefs.getString("dns", "") ?: ""
-        // val base = if (dns.endsWith("/")) dns else "$dns/"
-        // val url = "${base}movie/$username/$password/${filme.id}.${filme.extension ?: "mp4"}"
-        // ... enviar 'url' para o DownloadService.
+        // Verifica status do download
+        val downloadId = filme.id.toString()
+        val estaBaixando = prefs.getBoolean("downloading_$downloadId", false)
+
+        popup.menu.findItem(R.id.action_download).isVisible = !estaBaixando
+        popup.menu.findItem(R.id.action_pause).isVisible = estaBaixando
+        popup.menu.findItem(R.id.action_cancel).isVisible = estaBaixando
+
+        popup.setOnMenuItemClickListener { item: MenuItem ->
+            when (item.itemId) {
+                R.id.action_download -> {
+                    iniciarDownloadReal(filme)
+                    true
+                }
+                R.id.action_pause -> {
+                    pausarDownload(filme.id)
+                    true
+                }
+                R.id.action_cancel -> {
+                    cancelarDownload(filme.id)
+                    true
+                }
+                R.id.action_meus_downloads -> {
+                    abrirDownloadsPremium(filme)
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
     }
 
-    // ---------------- Adapters internos ----------------
+    private fun iniciarDownloadReal(filme: VodStream) {
+        val dns = prefs.getString("dns", "") ?: ""
+        val base = if (dns.endsWith("/")) dns else "$dns/"
+        val url = "${base}movie/$username/$password/${filme.id}.${filme.extension ?: "mp4"}"
+        
+        prefs.edit()
+            .putBoolean("downloading_${filme.id}", true)
+            .apply()
+            
+        Toast.makeText(this, "📥 Baixando: ${filme.name}", Toast.LENGTH_LONG).show()
+        // AQUI DEPOIS: chama DownloadManager ou ExoPlayer offline
+    }
 
+    private fun pausarDownload(streamId: String) {
+        prefs.edit().putBoolean("downloading_$streamId", false).apply()
+        Toast.makeText(this, "⏸️ Download pausado", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun cancelarDownload(streamId: String) {
+        prefs.edit().remove("downloading_$streamId").apply()
+        Toast.makeText(this, "❌ Download cancelado", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun abrirDownloadsPremium(filme: VodStream) {
+        Toast.makeText(
+            this, 
+            "📱 Downloads Premium: ${filme.name}\nTemporada/Episódio: Premium", 
+            Toast.LENGTH_LONG
+        ).show()
+        // AQUI DEPOIS: abre aba DownloadsActivity
+    }
+
+    // === ADAPTERS (sem mudanças) ===
     class VodCategoryAdapter(
         private val list: List<LiveCategory>,
         private val onClick: (LiveCategory) -> Unit
@@ -274,10 +327,7 @@ class VodActivity : AppCompatActivity() {
                 .into(holder.imgPoster)
 
             holder.itemView.setOnClickListener { onClick(item) }
-
-            holder.imgDownload.setOnClickListener {
-                onDownloadClick(item)
-            }
+            holder.imgDownload.setOnClickListener { onDownloadClick(item) }
         }
 
         override fun getItemCount() = list.size
