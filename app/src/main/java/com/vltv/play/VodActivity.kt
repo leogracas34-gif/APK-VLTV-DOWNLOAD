@@ -1,0 +1,252 @@
+package com.vltv.play
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+
+class VodActivity : AppCompatActivity() {
+
+    private lateinit var rvCategories: RecyclerView
+    private lateinit var rvMovies: RecyclerView
+    private lateinit var progressBar: View
+    private lateinit var tvCategoryTitle: TextView
+
+    private var username = ""
+    private var password = ""
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_live_tv)
+
+        rvCategories = findViewById(R.id.rvCategories)
+        rvMovies = findViewById(R.id.rvChannels)
+        progressBar = findViewById(R.id.progressBar)
+        tvCategoryTitle = findViewById(R.id.tvCategoryTitle)
+
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        username = prefs.getString("username", "") ?: ""
+        password = prefs.getString("password", "") ?: ""
+
+        rvCategories.layoutManager = LinearLayoutManager(this)
+        rvMovies.layoutManager = GridLayoutManager(this, 5)
+
+        carregarCategorias()
+    }
+
+    private fun carregarCategorias() {
+        progressBar.visibility = View.VISIBLE
+
+        XtreamApi.service.getVodCategories(username, password)
+            .enqueue(object : Callback<List<LiveCategory>> {
+                override fun onResponse(
+                    call: Call<List<LiveCategory>>,
+                    response: Response<List<LiveCategory>>
+                ) {
+                    progressBar.visibility = View.GONE
+                    if (response.isSuccessful && response.body() != null) {
+                        val originais = response.body()!!
+
+                        val categorias = mutableListOf<LiveCategory>()
+                        categorias.add(
+                            LiveCategory(
+                                category_id = "FAV",
+                                category_name = "FAVORITOS"
+                            )
+                        )
+                        categorias.addAll(originais)
+
+                        rvCategories.adapter = VodCategoryAdapter(categorias) { categoria ->
+                            if (categoria.id == "FAV") {
+                                carregarFilmesFavoritos()
+                            } else {
+                                carregarFilmes(categoria)
+                            }
+                        }
+
+                        if (categorias.size > 1) {
+                            carregarFilmes(categorias[1])
+                        }
+                    } else {
+                        Toast.makeText(
+                            this@VodActivity,
+                            "Erro ao carregar categorias",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                override fun onFailure(call: Call<List<LiveCategory>>, t: Throwable) {
+                    progressBar.visibility = View.GONE
+                    Toast.makeText(
+                        this@VodActivity,
+                        "Falha de conexão",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            })
+    }
+
+    private fun carregarFilmes(categoria: LiveCategory) {
+        tvCategoryTitle.text = categoria.name
+        progressBar.visibility = View.VISIBLE
+
+        XtreamApi.service.getVodStreams(username, password, categoryId = categoria.id)
+            .enqueue(object : Callback<List<VodStream>> {
+                override fun onResponse(
+                    call: Call<List<VodStream>>,
+                    response: Response<List<VodStream>>
+                ) {
+                    progressBar.visibility = View.GONE
+                    if (response.isSuccessful && response.body() != null) {
+                        rvMovies.adapter = VodAdapter(response.body()!!) { filme ->
+                            abrirDetalhes(filme)
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<List<VodStream>>, t: Throwable) {
+                    progressBar.visibility = View.GONE
+                }
+            })
+    }
+
+    private fun carregarFilmesFavoritos() {
+        tvCategoryTitle.text = "FAVORITOS"
+        progressBar.visibility = View.VISIBLE
+
+        val favIds = getFavMovies(this)
+        if (favIds.isEmpty()) {
+            progressBar.visibility = View.GONE
+            rvMovies.adapter = VodAdapter(emptyList()) {}
+            Toast.makeText(this, "Nenhum filme favorito.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        XtreamApi.service.getVodStreams(username, password, categoryId = "0")
+            .enqueue(object : Callback<List<VodStream>> {
+                override fun onResponse(
+                    call: Call<List<VodStream>>,
+                    response: Response<List<VodStream>>
+                ) {
+                    progressBar.visibility = View.GONE
+                    if (response.isSuccessful && response.body() != null) {
+                        val todos = response.body()!!
+                        val apenasFav = todos.filter { favIds.contains(it.id) }
+                        rvMovies.adapter = VodAdapter(apenasFav) { filme ->
+                            abrirDetalhes(filme)
+                        }
+                    }
+                }
+
+                override fun onFailure(call: Call<List<VodStream>>, t: Throwable) {
+                    progressBar.visibility = View.GONE
+                }
+            })
+    }
+
+    private fun abrirDetalhes(filme: VodStream) {
+        // aqui usamos a sua DetailsActivity
+        val intent = Intent(this@VodActivity, DetailsActivity::class.java)
+        intent.putExtra("stream_id", filme.id)
+        intent.putExtra("stream_ext", filme.extension ?: "mp4")
+        intent.putExtra("title", filme.name)
+        intent.putExtra("icon", filme.icon)
+        intent.putExtra("rating", filme.rating ?: "0.0")
+        startActivity(intent)
+    }
+
+    private fun getFavMovies(context: Context): MutableSet<Int> {
+        val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        val set = prefs.getStringSet("fav_movies", emptySet()) ?: emptySet()
+        return set.mapNotNull { it.toIntOrNull() }.toMutableSet()
+    }
+
+    class VodCategoryAdapter(
+        private val list: List<LiveCategory>,
+        private val onClick: (LiveCategory) -> Unit
+    ) : RecyclerView.Adapter<VodCategoryAdapter.VH>() {
+
+        private var selectedPos = 0
+
+        class VH(v: View) : RecyclerView.ViewHolder(v) {
+            val tvName: TextView = v.findViewById(R.id.tvName)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+            val v = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_category, parent, false)
+            return VH(v)
+        }
+
+        override fun onBindViewHolder(holder: VH, position: Int) {
+            val item = list[position]
+            holder.tvName.text = item.name
+
+            if (selectedPos == position) {
+                holder.tvName.setTextColor(
+                    holder.itemView.context.getColor(R.color.red_primary)
+                )
+                holder.tvName.setBackgroundColor(0xFF252525.toInt())
+            } else {
+                holder.tvName.setTextColor(
+                    holder.itemView.context.getColor(R.color.gray_text)
+                )
+                holder.tvName.setBackgroundColor(0x00000000)
+            }
+
+            holder.itemView.setOnClickListener {
+                notifyItemChanged(selectedPos)
+                selectedPos = holder.adapterPosition
+                notifyItemChanged(selectedPos)
+                onClick(item)
+            }
+        }
+
+        override fun getItemCount() = list.size
+    }
+
+    class VodAdapter(
+        private val list: List<VodStream>,
+        private val onClick: (VodStream) -> Unit
+    ) : RecyclerView.Adapter<VodAdapter.VH>() {
+
+        class VH(v: View) : RecyclerView.ViewHolder(v) {
+            val tvName: TextView = v.findViewById(R.id.tvName)
+            val imgPoster: ImageView = v.findViewById(R.id.imgPoster)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+            val v = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_vod, parent, false)
+            return VH(v)
+        }
+
+        override fun onBindViewHolder(holder: VH, position: Int) {
+            val item = list[position]
+            holder.tvName.text = item.name
+
+            Glide.with(holder.itemView)
+                .load(item.icon)
+                .placeholder(R.mipmap.ic_launcher)
+                .into(holder.imgPoster)
+
+            holder.itemView.setOnClickListener { onClick(item) }
+        }
+
+        override fun getItemCount() = list.size
+    }
+}
