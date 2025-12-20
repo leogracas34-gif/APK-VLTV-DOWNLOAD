@@ -185,13 +185,15 @@ class VodActivity : AppCompatActivity() {
         return set.mapNotNull { it.toIntOrNull() }.toMutableSet()
     }
 
-    // === MENU DOWNLOAD COMPLETO ===
+    // ================= MENU DOWNLOAD =================
+
     private fun mostrarMenuDownload(filme: VodStream) {
-        val popup = PopupMenu(this, findViewById(android.R.id.content))
+        // ancora no root da activity; se quiser pode trocar por uma view do card
+        val anchor = findViewById<View>(android.R.id.content)
+        val popup = PopupMenu(this, anchor)
         menuInflater.inflate(R.menu.menu_download, popup.menu)
 
-        // Verifica status do download
-        val downloadId = filme.id.toString()
+        val downloadId = filme.id
         val estaBaixando = prefs.getBoolean("downloading_$downloadId", false)
 
         popup.menu.findItem(R.id.action_download).isVisible = !estaBaixando
@@ -226,35 +228,36 @@ class VodActivity : AppCompatActivity() {
         val dns = prefs.getString("dns", "") ?: ""
         val base = if (dns.endsWith("/")) dns else "$dns/"
         val url = "${base}movie/$username/$password/${filme.id}.${filme.extension ?: "mp4"}"
-        
+
         prefs.edit()
             .putBoolean("downloading_${filme.id}", true)
             .apply()
-            
-        Toast.makeText(this, "📥 Baixando: ${filme.name}", Toast.LENGTH_LONG).show()
-        // AQUI DEPOIS: chama DownloadManager ou ExoPlayer offline
+
+        Toast.makeText(this, "Baixando: ${filme.name}", Toast.LENGTH_LONG).show()
+        // aqui depois entra DownloadManager ou ExoPlayer offline usando 'url'
     }
 
-    private fun pausarDownload(streamId: String) {
+    private fun pausarDownload(streamId: Int) {
         prefs.edit().putBoolean("downloading_$streamId", false).apply()
-        Toast.makeText(this, "⏸️ Download pausado", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Download pausado", Toast.LENGTH_SHORT).show()
     }
 
-    private fun cancelarDownload(streamId: String) {
+    private fun cancelarDownload(streamId: Int) {
         prefs.edit().remove("downloading_$streamId").apply()
-        Toast.makeText(this, "❌ Download cancelado", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Download cancelado", Toast.LENGTH_SHORT).show()
     }
 
     private fun abrirDownloadsPremium(filme: VodStream) {
         Toast.makeText(
-            this, 
-            "📱 Downloads Premium: ${filme.name}\nTemporada/Episódio: Premium", 
+            this,
+            "Meus downloads (premium) – ${filme.name}",
             Toast.LENGTH_LONG
         ).show()
-        // AQUI DEPOIS: abre aba DownloadsActivity
+        // depois você cria uma Activity/Fragment de downloads premium aqui
     }
 
-    // === ADAPTERS (sem mudanças) ===
+    // ================= ADAPTERS =================
+
     class VodCategoryAdapter(
         private val list: List<LiveCategory>,
         private val onClick: (LiveCategory) -> Unit
