@@ -112,9 +112,11 @@ class VodActivity : AppCompatActivity() {
                 ) {
                     progressBar.visibility = View.GONE
                     if (response.isSuccessful && response.body() != null) {
-                        rvMovies.adapter = VodAdapter(response.body()!!) { filme ->
-                            abrirDetalhes(filme)
-                        }
+                        rvMovies.adapter = VodAdapter(
+                            response.body()!!,
+                            onClick = { filme -> abrirDetalhes(filme) },
+                            onDownloadClick = { filme -> iniciarDownload(filme) }
+                        )
                     }
                 }
 
@@ -131,7 +133,11 @@ class VodActivity : AppCompatActivity() {
         val favIds = getFavMovies(this)
         if (favIds.isEmpty()) {
             progressBar.visibility = View.GONE
-            rvMovies.adapter = VodAdapter(emptyList()) {}
+            rvMovies.adapter = VodAdapter(
+                emptyList(),
+                onClick = {},
+                onDownloadClick = {}
+            )
             Toast.makeText(this, "Nenhum filme favorito.", Toast.LENGTH_SHORT).show()
             return
         }
@@ -146,9 +152,11 @@ class VodActivity : AppCompatActivity() {
                     if (response.isSuccessful && response.body() != null) {
                         val todos = response.body()!!
                         val apenasFav = todos.filter { favIds.contains(it.id) }
-                        rvMovies.adapter = VodAdapter(apenasFav) { filme ->
-                            abrirDetalhes(filme)
-                        }
+                        rvMovies.adapter = VodAdapter(
+                            apenasFav,
+                            onClick = { filme -> abrirDetalhes(filme) },
+                            onDownloadClick = { filme -> iniciarDownload(filme) }
+                        )
                     }
                 }
 
@@ -159,7 +167,6 @@ class VodActivity : AppCompatActivity() {
     }
 
     private fun abrirDetalhes(filme: VodStream) {
-        // aqui usamos a sua DetailsActivity
         val intent = Intent(this@VodActivity, DetailsActivity::class.java)
         intent.putExtra("stream_id", filme.id)
         intent.putExtra("stream_ext", filme.extension ?: "mp4")
@@ -174,6 +181,26 @@ class VodActivity : AppCompatActivity() {
         val set = prefs.getStringSet("fav_movies", emptySet()) ?: emptySet()
         return set.mapNotNull { it.toIntOrNull() }.toMutableSet()
     }
+
+    /** Aqui depois você pluga ExoPlayer offline ou DownloadManager */
+    private fun iniciarDownload(filme: VodStream) {
+        // Exemplo: neste momento só mostra um Toast.
+        Toast.makeText(
+            this,
+            "Iniciando download de ${filme.name}",
+            Toast.LENGTH_SHORT
+        ).show()
+
+        // Depois você monta a URL do filme e chama o serviço de download.
+        // Exemplo de URL Xtream:
+        // val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        // val dns = prefs.getString("dns", "") ?: ""
+        // val base = if (dns.endsWith("/")) dns else "$dns/"
+        // val url = "${base}movie/$username/$password/${filme.id}.${filme.extension ?: "mp4"}"
+        // ... enviar 'url' para o DownloadService.
+    }
+
+    // ---------------- Adapters internos ----------------
 
     class VodCategoryAdapter(
         private val list: List<LiveCategory>,
@@ -221,12 +248,14 @@ class VodActivity : AppCompatActivity() {
 
     class VodAdapter(
         private val list: List<VodStream>,
-        private val onClick: (VodStream) -> Unit
+        private val onClick: (VodStream) -> Unit,
+        private val onDownloadClick: (VodStream) -> Unit
     ) : RecyclerView.Adapter<VodAdapter.VH>() {
 
         class VH(v: View) : RecyclerView.ViewHolder(v) {
             val tvName: TextView = v.findViewById(R.id.tvName)
             val imgPoster: ImageView = v.findViewById(R.id.imgPoster)
+            val imgDownload: ImageView = v.findViewById(R.id.imgDownload)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -245,6 +274,10 @@ class VodActivity : AppCompatActivity() {
                 .into(holder.imgPoster)
 
             holder.itemView.setOnClickListener { onClick(item) }
+
+            holder.imgDownload.setOnClickListener {
+                onDownloadClick(item)
+            }
         }
 
         override fun getItemCount() = list.size
