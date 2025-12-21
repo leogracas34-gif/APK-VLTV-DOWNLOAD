@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -91,13 +92,9 @@ class DetailsActivity : AppCompatActivity() {
             abrirPlayer(name, startPositionMs = pos)
         }
 
-        // DOWNLOAD – teste
+        // DOWNLOAD – abre menu
         btnDownload.setOnClickListener {
-            Toast.makeText(
-                this,
-                "Download de $name (ID $streamId)",
-                Toast.LENGTH_SHORT
-            ).show()
+            mostrarMenuDownload(name)
         }
 
         // Detalhes do painel Xtream
@@ -201,18 +198,15 @@ class DetailsActivity : AppCompatActivity() {
                 ) {
                     val movie = response.body()?.results?.firstOrNull() ?: return
 
-                    // Sinopse
                     if (tvPlot.text.isNullOrBlank() || tvPlot.text == "Sinopse indisponível.") {
                         tvPlot.text = movie.overview ?: "Sinopse indisponível."
                     }
 
-                    // Nota
                     if (tvRating.text.isNullOrBlank() || tvRating.text.contains("N/A")) {
                         val nota = movie.vote_average ?: 0f
                         tvRating.text = "Nota: ${String.format("%.1f", nota)}"
                     }
 
-                    // Poster de melhor qualidade
                     if (movie.poster_path != null) {
                         val urlPoster = "https://image.tmdb.org/t/p/w500${movie.poster_path}"
                         Glide.with(this@DetailsActivity)
@@ -225,8 +219,71 @@ class DetailsActivity : AppCompatActivity() {
                     call: Call<TmdbSearchResponse>,
                     t: Throwable
                 ) {
-                    // não precisa mostrar erro
                 }
             })
+    }
+
+    // ------------ MENU DOWNLOAD ------------
+
+    private fun mostrarMenuDownload(titulo: String) {
+        val popup = PopupMenu(this, btnDownload)
+        popup.menuInflater.inflate(R.menu.menu_download, popup.menu)
+
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        val isDownloading = prefs.getBoolean("downloading_$streamId", false)
+
+        popup.menu.findItem(R.id.action_download).isVisible = !isDownloading
+        popup.menu.findItem(R.id.action_pause).isVisible = isDownloading
+        popup.menu.findItem(R.id.action_cancel).isVisible = isDownloading
+
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.action_download -> {
+                    iniciarDownload(titulo)
+                    true
+                }
+                R.id.action_pause -> {
+                    pausarDownload()
+                    true
+                }
+                R.id.action_cancel -> {
+                    cancelarDownload()
+                    true
+                }
+                R.id.action_meus_downloads -> {
+                    abrirMeusDownloads()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        popup.show()
+    }
+
+    private fun iniciarDownload(titulo: String) {
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("downloading_$streamId", true).apply()
+        Toast.makeText(this, "Iniciando download de $titulo", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun pausarDownload() {
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("downloading_$streamId", false).apply()
+        Toast.makeText(this, "Download pausado", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun cancelarDownload() {
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("downloading_$streamId").apply()
+        Toast.makeText(this, "Download cancelado", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun abrirMeusDownloads() {
+        Toast.makeText(
+            this,
+            "Abrir tela de Meus downloads (ainda não criada)",
+            Toast.LENGTH_LONG
+        ).show()
     }
 }
