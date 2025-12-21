@@ -1,5 +1,6 @@
 package com.vltv.play
 
+import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -100,40 +101,51 @@ class DetailsActivity : AppCompatActivity() {
         btnDownloadArea.setOnClickListener {
             when (downloadState) {
                 DownloadState.BAIXAR -> {
-                    Toast.makeText(this, "Iniciando download de $name", Toast.LENGTH_SHORT).show()
-                    // aqui você chama sua lógica real de download
+                    val url = montarUrlFilme()
+                    val fileName = "movie_$streamId.$extension"
+                    DownloadHelper.enqueueDownload(
+                        this,
+                        url,
+                        fileName,
+                        logicalId = "movie_$streamId",
+                        type = "movie"
+                    )
+                    Toast.makeText(this, "Download iniciado", Toast.LENGTH_SHORT).show()
                     setDownloadState(DownloadState.BAIXANDO)
                 }
                 DownloadState.BAIXANDO -> {
                     val popup = PopupMenu(this, btnDownloadArea)
-                    popup.menu.add("Pausar download")
-                    popup.menu.add("Ir para downloads")
-                    popup.setOnMenuItemClickListener { item ->
-                        when (item.title) {
-                            "Pausar download" -> {
-                                // TODO: pausar download real
-                                Toast.makeText(this, "Download pausado", Toast.LENGTH_SHORT).show()
-                                true
-                            }
-                            "Ir para downloads" -> {
-                                // TODO: abrir tela de downloads
-                                Toast.makeText(this, "Abrindo downloads", Toast.LENGTH_SHORT).show()
-                                true
-                            }
-                            else -> false
-                        }
+                    popup.menu.add("Ir para downloads do sistema")
+                    popup.setOnMenuItemClickListener {
+                        startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
+                        true
                     }
                     popup.show()
                 }
                 DownloadState.BAIXADO -> {
-                    Toast.makeText(this, "Abrindo downloads", Toast.LENGTH_SHORT).show()
-                    // TODO: abrir tela de downloads
+                    Toast.makeText(this, "Arquivo já baixado", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
                 }
             }
         }
 
         carregarDetalhes(streamId)
         carregarDetalhesTmdb(name)
+    }
+
+    private fun montarUrlFilme(): String {
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        val user = prefs.getString("username", "") ?: ""
+        val pass = prefs.getString("password", "") ?: ""
+
+        val serverList = listOf(
+            "http://tvblack.shop",
+            "http://firewallnaousardns.xyz:80",
+            "http://fibercdn.sbs"
+        )
+        val server = serverList.first()
+        val finalExt = if (extension.isNotEmpty()) ".$extension" else ""
+        return "$server/movie/$user/$pass/$streamId$finalExt"
     }
 
     private fun abrirPlayer(name: String, startPositionMs: Long) {
@@ -157,12 +169,33 @@ class DetailsActivity : AppCompatActivity() {
         btnResume.visibility = if (existe) Button.VISIBLE else Button.GONE
     }
 
-    // -------- ESTADO DOWNLOAD VISUAL --------
     private fun setDownloadState(state: DownloadState) {
         downloadState = state
-        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putString("download_state_$streamId", state.name).apply()
+        when (state) {
+            DownloadState.BAIXAR -> {
+                imgDownloadState.setImageResource(R.drawable.ic_dl_arrow)
+                tvDownloadState.text = "Baixar"
+            }
+            DownloadState.BAIXANDO -> {
+                imgDownloadState.setImageResource(R.drawable.ic_dl_loading)
+                tvDownloadState.text = "Baixando"
+            }
+            DownloadState.BAIXADO -> {
+                imgDownloadState.setImageResource(R.drawable.ic_dl_done)
+                tvDownloadState.text = "Baixado"
+            }
+        }
+        DownloadHelper.setDownloadState(this, "movie_$streamId", state.name)
+    }
 
+    private fun restaurarEstadoDownload() {
+        val stateName = DownloadHelper.getDownloadState(this, "movie_$streamId")
+        val state = try {
+            DownloadState.valueOf(stateName)
+        } catch (_: Exception) {
+            DownloadState.BAIXAR
+        }
+        downloadState = state
         when (state) {
             DownloadState.BAIXAR -> {
                 imgDownloadState.setImageResource(R.drawable.ic_dl_arrow)
@@ -179,18 +212,8 @@ class DetailsActivity : AppCompatActivity() {
         }
     }
 
-    private fun restaurarEstadoDownload() {
-        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
-        val name = prefs.getString("download_state_$streamId", DownloadState.BAIXAR.name)
-        val state = try {
-            DownloadState.valueOf(name ?: DownloadState.BAIXAR.name)
-        } catch (_: Exception) {
-            DownloadState.BAIXAR
-        }
-        setDownloadState(state)
-    }
+    // --- FAVORITOS / DETALHES (mesmo código que você já tinha) ---
 
-    // ------------ FAVORITOS ------------
     private fun getFavMovies(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val set = prefs.getStringSet("fav_movies", emptySet()) ?: emptySet()
@@ -209,7 +232,6 @@ class DetailsActivity : AppCompatActivity() {
         btnFavorite.setImageResource(res)
     }
 
-    // ------------ DETALHES VOD (Xtream) ------------
     private fun carregarDetalhes(streamId: Int) {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val username = prefs.getString("username", "") ?: ""
@@ -246,7 +268,6 @@ class DetailsActivity : AppCompatActivity() {
             })
     }
 
-    // ------------ DETALHES TMDB ------------
     private fun carregarDetalhesTmdb(titulo: String) {
         val apiKey = TmdbConfig.API_KEY
         if (apiKey.isBlank()) return
