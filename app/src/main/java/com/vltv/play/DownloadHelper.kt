@@ -12,17 +12,13 @@ import android.os.Environment
 object DownloadHelper {
 
     private const val PREFS_NAME = "vltv_prefs"
-    private const val KEY_DM_ID_PREFIX = "dm_id_"          // dm_id_<logicalId>
-    private const val KEY_DL_STATE_PREFIX = "dl_state_"    // dl_state_<logicalId>
+    private const val KEY_DM_ID_PREFIX = "dm_id_"
+    private const val KEY_DL_STATE_PREFIX = "dl_state_"
 
     const val STATE_BAIXAR = "BAIXAR"
     const val STATE_BAIXANDO = "BAIXANDO"
     const val STATE_BAIXADO = "BAIXADO"
 
-    /**
-     * logicalId = id lógico do item (movie streamId ou episodeId)
-     * type = "movie" ou "series" (só para você diferenciar depois se quiser)
-     */
     fun enqueueDownload(
         context: Context,
         url: String,
@@ -68,15 +64,13 @@ object DownloadHelper {
             .apply()
     }
 
-    /**
-     * Registrar esse receiver uma vez, por exemplo no Application ou na Activity principal.
-     * Ele converte status do DownloadManager -> STATE_BAIXADO / BAIXANDO / BAIXAR.
-     */
+    // REGISTRAR UMA VEZ na HomeActivity (que vive sempre)
     fun registerReceiver(context: Context) {
-        context.registerReceiver(
-            receiver,
-            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
-        )
+        try {
+            context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        } catch (e: Exception) {
+            // Ignora se já registrado
+        }
     }
 
     private val receiver = object : BroadcastReceiver() {
@@ -85,37 +79,21 @@ object DownloadHelper {
             if (id == -1L) return
 
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val all = prefs.all
-
-            val logicalId = all.keys
+            
+            val logicalId = prefs.all.keys
                 .firstOrNull { key ->
-                    key.startsWith(KEY_DM_ID_PREFIX) &&
-                            prefs.getLong(key, -2L) == id
+                    key.startsWith(KEY_DM_ID_PREFIX) && prefs.getLong(key, -1L) == id
                 }
-                ?.removePrefix(KEY_DM_ID_PREFIX)
-                ?: return
+                ?.removePrefix(KEY_DM_ID_PREFIX) ?: return
 
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             val query = DownloadManager.Query().setFilterById(id)
-            val cursor: Cursor = dm.query(query) ?: return
-
-            cursor.use {
-                if (!it.moveToFirst()) return
-
-                val statusIdx = it.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                if (statusIdx == -1) return
-
-                when (it.getInt(statusIdx)) {
-                    DownloadManager.STATUS_SUCCESSFUL -> {
-                        setDownloadState(context, logicalId, STATE_BAIXADO)
-                    }
-                    DownloadManager.STATUS_FAILED -> {
-                        setDownloadState(context, logicalId, STATE_BAIXAR)
-                    }
-                    DownloadManager.STATUS_RUNNING,
-                    DownloadManager.STATUS_PENDING,
-                    DownloadManager.STATUS_PAUSED -> {
-                        setDownloadState(context, logicalId, STATE_BAIXANDO)
+            dm.query(query).use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                    when (status) {
+                        DownloadManager.STATUS_SUCCESSFUL -> setDownloadState(context, logicalId, STATE_BAIXADO)
+                        DownloadManager.STATUS_FAILED -> setDownloadState(context, logicalId, STATE_BAIXAR)
                     }
                 }
             }
