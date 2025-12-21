@@ -3,9 +3,12 @@ package com.vltv.play
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Switch
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -16,8 +19,14 @@ class SettingsActivity : AppCompatActivity() {
         val switchParental: Switch = findViewById(R.id.switchParental)
         val etPin: EditText = findViewById(R.id.etPin)
         val btnSavePin: Button = findViewById(R.id.btnSavePin)
+        val cardClearCache: LinearLayout = findViewById(R.id.cardClearCache)
+        val cardAbout: LinearLayout = findViewById(R.id.cardAbout)
+        val tvVersion: TextView = findViewById(R.id.tvVersion)
 
-        // carregar estado atual
+        // Versão do app
+        tvVersion.text = "Versão ${BuildConfig.VERSION_NAME}"
+
+        // Controle parental
         switchParental.isChecked = ParentalControlManager.isEnabled(this)
         etPin.setText(ParentalControlManager.getPin(this))
 
@@ -33,6 +42,24 @@ class SettingsActivity : AppCompatActivity() {
                 ParentalControlManager.setPin(this, pin)
                 Toast.makeText(this, "PIN salvo", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        // Limpar cache (Glide + temporários simples)
+        cardClearCache.setOnClickListener {
+            Thread {
+                Glide.get(this).clearDiskCache()
+            }.start()
+            Glide.get(this).clearMemory()
+            Toast.makeText(this, "Cache limpo", Toast.LENGTH_SHORT).show()
+        }
+
+        // Sobre (pode adicionar mais info depois)
+        cardAbout.setOnClickListener {
+            Toast.makeText(
+                this,
+                "VLTV PLAY\nVersão ${BuildConfig.VERSION_NAME}",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 }
