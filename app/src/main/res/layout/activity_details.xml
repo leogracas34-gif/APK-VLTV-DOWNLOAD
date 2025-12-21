@@ -109,16 +109,18 @@
             android:orientation="horizontal"
             android:layout_marginTop="24dp">
 
+            <!-- ASSISTIR com mesmo vermelho/degradê da home -->
             <Button
                 android:id="@+id/btnPlay"
                 android:layout_width="0dp"
                 android:layout_height="50dp"
                 android:layout_weight="0.7"
-                android:backgroundTint="#D32F2F"
+                android:background="@drawable/bg_button_red_round"
                 android:text="ASSISTIR"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold" />
 
+            <!-- Área de download -->
             <LinearLayout
                 android:id="@+id/btnDownloadArea"
                 android:layout_width="0dp"
