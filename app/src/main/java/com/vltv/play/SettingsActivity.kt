@@ -12,7 +12,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
-import com.vltv.play.BuildConfig
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -29,7 +28,7 @@ class SettingsActivity : AppCompatActivity() {
         val cardLogout: LinearLayout = findViewById(R.id.cardLogout)
 
         // Versão do app via BuildConfig
-        tvVersion.text = "Versão ${BuildConfig.VERSION_NAME}"
+        tvVersion.text = "Versão Versão 1.0.0"
 
         // -------- CONTROLE PARENTAL --------
         switchParental.isChecked = ParentalControlManager.isEnabled(this)
