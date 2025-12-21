@@ -109,18 +109,18 @@
             android:orientation="horizontal"
             android:layout_marginTop="24dp">
 
-            <!-- ASSISTIR vermelho premium -->
+            <!-- ASSISTIR com o mesmo degradê da home -->
             <Button
                 android:id="@+id/btnPlay"
                 android:layout_width="0dp"
                 android:layout_height="50dp"
                 android:layout_weight="0.7"
-                android:background="@drawable/bg_button_red_round"
+                android:background="@drawable/bg_home_red"
                 android:text="ASSISTIR"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold" />
 
-            <!-- BAIXAR só com ícone+texto, sem retângulo -->
+            <!-- BAIXAR só ícone+texto, sem retângulo -->
             <LinearLayout
                 android:id="@+id/btnDownloadArea"
                 android:layout_width="0dp"
