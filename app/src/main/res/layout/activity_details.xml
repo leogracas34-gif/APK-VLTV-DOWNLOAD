@@ -109,7 +109,7 @@
             android:orientation="horizontal"
             android:layout_marginTop="24dp">
 
-            <!-- ASSISTIR com mesmo vermelho/degradê da home -->
+            <!-- ASSISTIR vermelho premium -->
             <Button
                 android:id="@+id/btnPlay"
                 android:layout_width="0dp"
@@ -120,7 +120,7 @@
                 android:textColor="#FFFFFF"
                 android:textStyle="bold" />
 
-            <!-- Área de download -->
+            <!-- BAIXAR fundo escuro, texto branco -->
             <LinearLayout
                 android:id="@+id/btnDownloadArea"
                 android:layout_width="0dp"
@@ -129,12 +129,14 @@
                 android:layout_marginStart="8dp"
                 android:gravity="center"
                 android:orientation="horizontal"
-                android:background="@drawable/bg_button_red_round">
+                android:paddingHorizontal="16dp"
+                android:background="#202020">
 
                 <ImageView
                     android:id="@+id/imgDownloadState"
                     android:layout_width="20dp"
                     android:layout_height="20dp"
+                    android:tint="#FFFFFF"
                     android:src="@drawable/ic_dl_arrow" />
 
                 <TextView
