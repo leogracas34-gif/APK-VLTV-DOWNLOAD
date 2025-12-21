@@ -103,7 +103,6 @@ class DetailsActivity : AppCompatActivity() {
         btnDownloadArea.setOnClickListener {
             when (downloadState) {
                 DownloadState.BAIXAR -> {
-                    // depois aqui entra DownloadManager real
                     Toast.makeText(this, "Iniciando download de $name", Toast.LENGTH_SHORT).show()
                     setDownloadState(DownloadState.BAIXANDO)
                 }
@@ -158,7 +157,6 @@ class DetailsActivity : AppCompatActivity() {
                 tvDownloadState.text = "Baixar"
             }
             DownloadState.BAIXANDO -> {
-                // ícone de bolinha / loader, texto branco normal
                 imgDownloadState.setImageResource(R.drawable.ic_dl_loading)
                 tvDownloadState.text = "Baixando"
             }
