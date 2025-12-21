@@ -1,4 +1,3 @@
-
 package com.vltv.play
 
 import android.content.Context
@@ -32,8 +31,11 @@ class SettingsActivity : AppCompatActivity() {
         tvVersion.text = "Versão 1.0.0"
 
         // -------- CONTROLE PARENTAL --------
-        switchParental.isChecked = ParentalControlManager.isEnabled(this)
-        etPin.setText(ParentalControlManager.getPin(this))
+        // isEnabled pode ser Boolean?, então garante que vira Boolean
+        switchParental.isChecked = ParentalControlManager.isEnabled(this) == true
+
+        // getPin pode ser String?, então usa vazio se vier nulo
+        etPin.setText(ParentalControlManager.getPin(this) ?: "")
 
         switchParental.setOnCheckedChangeListener { _, isChecked ->
             ParentalControlManager.setEnabled(this, isChecked)
