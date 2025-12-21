@@ -102,7 +102,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Botão ASSISTIR + seta download -->
+        <!-- Botão ASSISTIR + área de download -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -113,21 +113,37 @@
                 android:id="@+id/btnPlay"
                 android:layout_width="0dp"
                 android:layout_height="50dp"
-                android:layout_weight="0.8"
+                android:layout_weight="0.7"
                 android:backgroundTint="#D32F2F"
                 android:text="ASSISTIR"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold" />
 
-            <ImageButton
-                android:id="@+id/btnDownload"
+            <LinearLayout
+                android:id="@+id/btnDownloadArea"
                 android:layout_width="0dp"
                 android:layout_height="50dp"
-                android:layout_weight="0.2"
+                android:layout_weight="0.3"
                 android:layout_marginStart="8dp"
-                android:background="@android:color/transparent"
-                android:src="@drawable/ic_download"
-                android:tint="#FFFFFF" />
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:background="@drawable/bg_button_red_round">
+
+                <ImageView
+                    android:id="@+id/imgDownloadState"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_dl_arrow" />
+
+                <TextView
+                    android:id="@+id/tvDownloadState"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="Baixar"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Continuar assistindo -->
