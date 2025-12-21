@@ -120,7 +120,7 @@
                 android:textColor="#FFFFFF"
                 android:textStyle="bold" />
 
-            <!-- BAIXAR fundo escuro, texto branco -->
+            <!-- BAIXAR só com ícone+texto, sem retângulo -->
             <LinearLayout
                 android:id="@+id/btnDownloadArea"
                 android:layout_width="0dp"
@@ -130,7 +130,7 @@
                 android:gravity="center"
                 android:orientation="horizontal"
                 android:paddingHorizontal="16dp"
-                android:background="#202020">
+                android:background="@android:color/transparent">
 
                 <ImageView
                     android:id="@+id/imgDownloadState"
