@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import com.bumptech.glide.Glide
 import retrofit2.Call
 import retrofit2.Callback
@@ -22,7 +23,6 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var btnFavorite: ImageButton
     private lateinit var btnResume: Button
 
-    // área de download
     private lateinit var btnDownloadArea: LinearLayout
     private lateinit var imgDownloadState: ImageView
     private lateinit var tvDownloadState: TextView
@@ -64,7 +64,6 @@ class DetailsActivity : AppCompatActivity() {
             .placeholder(R.mipmap.ic_launcher)
             .into(imgPoster)
 
-        // FAVORITOS
         val isFavInicial = getFavMovies(this).contains(streamId)
         atualizarIconeFavorito(isFavInicial)
 
@@ -82,7 +81,6 @@ class DetailsActivity : AppCompatActivity() {
             atualizarIconeFavorito(novoFav)
         }
 
-        // CONTINUAR ASSISTINDO
         configurarBotaoResume()
 
         btnPlay.setOnClickListener {
@@ -97,28 +95,44 @@ class DetailsActivity : AppCompatActivity() {
             abrirPlayer(name, startPositionMs = pos)
         }
 
-        // restaurar estado de download salvo
         restaurarEstadoDownload()
 
-        // clique do botão de download
         btnDownloadArea.setOnClickListener {
             when (downloadState) {
                 DownloadState.BAIXAR -> {
                     Toast.makeText(this, "Iniciando download de $name", Toast.LENGTH_SHORT).show()
+                    // aqui você chama sua lógica real de download
                     setDownloadState(DownloadState.BAIXANDO)
                 }
                 DownloadState.BAIXANDO -> {
-                    Toast.makeText(this, "Download em andamento...", Toast.LENGTH_SHORT).show()
+                    val popup = PopupMenu(this, btnDownloadArea)
+                    popup.menu.add("Pausar download")
+                    popup.menu.add("Ir para downloads")
+                    popup.setOnMenuItemClickListener { item ->
+                        when (item.title) {
+                            "Pausar download" -> {
+                                // TODO: pausar download real
+                                Toast.makeText(this, "Download pausado", Toast.LENGTH_SHORT).show()
+                                true
+                            }
+                            "Ir para downloads" -> {
+                                // TODO: abrir tela de downloads
+                                Toast.makeText(this, "Abrindo downloads", Toast.LENGTH_SHORT).show()
+                                true
+                            }
+                            else -> false
+                        }
+                    }
+                    popup.show()
                 }
                 DownloadState.BAIXADO -> {
-                    Toast.makeText(this, "Abrir Meus downloads (em breve)", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Abrindo downloads", Toast.LENGTH_SHORT).show()
+                    // TODO: abrir tela de downloads
                 }
             }
         }
 
-        // Detalhes do painel Xtream
         carregarDetalhes(streamId)
-        // Completar com TMDB
         carregarDetalhesTmdb(name)
     }
 
@@ -128,7 +142,6 @@ class DetailsActivity : AppCompatActivity() {
         intent.putExtra("stream_ext", extension)
         intent.putExtra("stream_type", "movie")
         intent.putExtra("channel_name", name)
-
         if (startPositionMs > 0L) {
             intent.putExtra("start_position_ms", startPositionMs)
         }
@@ -140,7 +153,6 @@ class DetailsActivity : AppCompatActivity() {
         val keyBase = "movie_resume_$streamId"
         val pos = prefs.getLong("${keyBase}_pos", 0L)
         val dur = prefs.getLong("${keyBase}_dur", 0L)
-
         val existe = pos > 30_000L && dur > 0L && pos < (dur * 0.95).toLong()
         btnResume.visibility = if (existe) Button.VISIBLE else Button.GONE
     }
