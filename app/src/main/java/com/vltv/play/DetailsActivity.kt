@@ -7,6 +7,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import retrofit2.Call
@@ -24,6 +25,7 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var btnPlay: Button
     private lateinit var btnFavorite: ImageButton
     private lateinit var btnResume: Button
+    private lateinit var btnDownload: ImageButton
 
     private var streamId: Int = 0
     private var extension: String = "mp4"
@@ -47,6 +49,7 @@ class DetailsActivity : AppCompatActivity() {
         btnPlay = findViewById(R.id.btnPlay)
         btnFavorite = findViewById(R.id.btnFavorite)
         btnResume = findViewById(R.id.btnResume)
+        btnDownload = findViewById(R.id.btnDownload)
 
         tvTitle.text = name
 
@@ -55,7 +58,7 @@ class DetailsActivity : AppCompatActivity() {
             .placeholder(R.mipmap.ic_launcher)
             .into(imgPoster)
 
-        // -------- FAVORITOS --------
+        // FAVORITOS
         val isFavInicial = getFavMovies(this).contains(streamId)
         atualizarIconeFavorito(isFavInicial)
 
@@ -73,7 +76,7 @@ class DetailsActivity : AppCompatActivity() {
             atualizarIconeFavorito(novoFav)
         }
 
-        // -------- CONTINUAR ASSISTINDO --------
+        // CONTINUAR ASSISTINDO
         configurarBotaoResume()
 
         btnPlay.setOnClickListener {
@@ -88,6 +91,16 @@ class DetailsActivity : AppCompatActivity() {
             abrirPlayer(name, startPositionMs = pos)
         }
 
+        // DOWNLOAD – por enquanto só teste com Toast
+        btnDownload.setOnClickListener {
+            Toast.makeText(
+                this,
+                "Download de $name (ID $streamId)",
+                Toast.LENGTH_SHORT
+            ).show()
+            // depois aqui você chama mostrarMenuDownload() ou serviço de download
+        }
+
         carregarDetalhes(streamId)
     }
 
@@ -96,7 +109,7 @@ class DetailsActivity : AppCompatActivity() {
         intent.putExtra("stream_id", streamId)
         intent.putExtra("stream_ext", extension)
         intent.putExtra("stream_type", "movie")
-        intent.putExtra("channel_name", name)   // nome do filme para o player
+        intent.putExtra("channel_name", name)
 
         if (startPositionMs > 0L) {
             intent.putExtra("start_position_ms", startPositionMs)
@@ -134,7 +147,7 @@ class DetailsActivity : AppCompatActivity() {
         btnFavorite.setImageResource(res)
     }
 
-    // ------------ DETALHES VOD ------------
+    // ------------ DETALHES VOD (Xtream) ------------
 
     private fun carregarDetalhes(streamId: Int) {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
