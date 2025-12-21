@@ -100,6 +100,7 @@ class DetailsActivity : AppCompatActivity() {
         // restaurar estado de download salvo
         restaurarEstadoDownload()
 
+        // clique do botão de download
         btnDownloadArea.setOnClickListener {
             when (downloadState) {
                 DownloadState.BAIXAR -> {
@@ -145,7 +146,6 @@ class DetailsActivity : AppCompatActivity() {
     }
 
     // -------- ESTADO DOWNLOAD VISUAL --------
-
     private fun setDownloadState(state: DownloadState) {
         downloadState = state
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -179,7 +179,6 @@ class DetailsActivity : AppCompatActivity() {
     }
 
     // ------------ FAVORITOS ------------
-
     private fun getFavMovies(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val set = prefs.getStringSet("fav_movies", emptySet()) ?: emptySet()
@@ -199,7 +198,6 @@ class DetailsActivity : AppCompatActivity() {
     }
 
     // ------------ DETALHES VOD (Xtream) ------------
-
     private fun carregarDetalhes(streamId: Int) {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val username = prefs.getString("username", "") ?: ""
@@ -237,7 +235,6 @@ class DetailsActivity : AppCompatActivity() {
     }
 
     // ------------ DETALHES TMDB ------------
-
     private fun carregarDetalhesTmdb(titulo: String) {
         val apiKey = TmdbConfig.API_KEY
         if (apiKey.isBlank()) return
