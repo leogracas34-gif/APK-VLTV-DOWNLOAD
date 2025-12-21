@@ -91,17 +91,19 @@ class DetailsActivity : AppCompatActivity() {
             abrirPlayer(name, startPositionMs = pos)
         }
 
-        // DOWNLOAD – por enquanto só teste com Toast
+        // DOWNLOAD – teste
         btnDownload.setOnClickListener {
             Toast.makeText(
                 this,
                 "Download de $name (ID $streamId)",
                 Toast.LENGTH_SHORT
             ).show()
-            // depois aqui você chama mostrarMenuDownload() ou serviço de download
         }
 
+        // Detalhes do painel Xtream
         carregarDetalhes(streamId)
+        // Completar com TMDB
+        carregarDetalhesTmdb(name)
     }
 
     private fun abrirPlayer(name: String, startPositionMs: Long) {
@@ -181,6 +183,49 @@ class DetailsActivity : AppCompatActivity() {
 
                 override fun onFailure(call: Call<VodInfoResponse>, t: Throwable) {
                     tvPlot.text = "Erro de conexão ao buscar detalhes."
+                }
+            })
+    }
+
+    // ------------ DETALHES TMDB (completa o que faltar) ------------
+
+    private fun carregarDetalhesTmdb(titulo: String) {
+        val apiKey = TmdbConfig.API_KEY
+        if (apiKey.isBlank()) return
+
+        TmdbApi.service.searchMovie(apiKey, titulo)
+            .enqueue(object : Callback<TmdbSearchResponse> {
+                override fun onResponse(
+                    call: Call<TmdbSearchResponse>,
+                    response: Response<TmdbSearchResponse>
+                ) {
+                    val movie = response.body()?.results?.firstOrNull() ?: return
+
+                    // Sinopse
+                    if (tvPlot.text.isNullOrBlank() || tvPlot.text == "Sinopse indisponível.") {
+                        tvPlot.text = movie.overview ?: "Sinopse indisponível."
+                    }
+
+                    // Nota
+                    if (tvRating.text.isNullOrBlank() || tvRating.text.contains("N/A")) {
+                        val nota = movie.vote_average ?: 0f
+                        tvRating.text = "Nota: ${String.format("%.1f", nota)}"
+                    }
+
+                    // Poster de melhor qualidade
+                    if (movie.poster_path != null) {
+                        val urlPoster = "https://image.tmdb.org/t/p/w500${movie.poster_path}"
+                        Glide.with(this@DetailsActivity)
+                            .load(urlPoster)
+                            .into(imgPoster)
+                    }
+                }
+
+                override fun onFailure(
+                    call: Call<TmdbSearchResponse>,
+                    t: Throwable
+                ) {
+                    // não precisa mostrar erro
                 }
             })
     }
