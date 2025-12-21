@@ -1,5 +1,7 @@
 package com.vltv.play
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -7,6 +9,7 @@ import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.vltv.play.BuildConfig
@@ -23,11 +26,12 @@ class SettingsActivity : AppCompatActivity() {
         val cardClearCache: LinearLayout = findViewById(R.id.cardClearCache)
         val cardAbout: LinearLayout = findViewById(R.id.cardAbout)
         val tvVersion: TextView = findViewById(R.id.tvVersion)
+        val cardLogout: LinearLayout = findViewById(R.id.cardLogout)
 
-        // Versão do app
+        // Versão do app via BuildConfig
         tvVersion.text = "Versão ${BuildConfig.VERSION_NAME}"
 
-        // Controle parental
+        // -------- CONTROLE PARENTAL --------
         switchParental.isChecked = ParentalControlManager.isEnabled(this)
         etPin.setText(ParentalControlManager.getPin(this))
 
@@ -45,7 +49,7 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-        // Limpar cache (Glide + temporários simples)
+        // -------- LIMPAR CACHE --------
         cardClearCache.setOnClickListener {
             Thread {
                 Glide.get(this).clearDiskCache()
@@ -54,13 +58,33 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(this, "Cache limpo", Toast.LENGTH_SHORT).show()
         }
 
-        // Sobre (pode adicionar mais info depois)
+        // -------- SOBRE O APLICATIVO --------
         cardAbout.setOnClickListener {
-            Toast.makeText(
-                this,
-                "VLTV PLAY\nVersão ${BuildConfig.VERSION_NAME}",
-                Toast.LENGTH_LONG
-            ).show()
+            val msg = "VLTV PLAY\nVersão ${BuildConfig.VERSION_NAME}\nDesenvolvido por VLTV."
+            AlertDialog.Builder(this)
+                .setTitle("Sobre o aplicativo")
+                .setMessage(msg)
+                .setPositiveButton("OK", null)
+                .show()
+        }
+
+        // -------- SAIR DA CONTA --------
+        cardLogout.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Sair")
+                .setMessage("Deseja realmente sair e desconectar?")
+                .setPositiveButton("Sim") { _, _ ->
+                    val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+                    prefs.edit().clear().apply()
+
+                    val intent = Intent(this, LoginActivity::class.java)
+                    intent.flags =
+                        Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                }
+                .setNegativeButton("Não", null)
+                .show()
         }
     }
 }
