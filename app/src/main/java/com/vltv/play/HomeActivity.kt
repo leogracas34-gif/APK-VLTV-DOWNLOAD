@@ -28,9 +28,6 @@ class HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // REGISTRAR RECEIVER DE DOWNLOADS (ADICIONADO)
-        DownloadHelper.registerReceiver(this)
-
         setupClicks()
     }
 
