@@ -86,7 +86,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ASSISTIR + BAIXAR (para episódio atual / próximo) -->
+        <!-- ASSISTIR + BAIXAR -->
         <LinearLayout
             android:id="@+id/layoutPlayDownload"
             android:layout_width="match_parent"
@@ -94,18 +94,18 @@
             android:orientation="horizontal"
             android:layout_marginBottom="16dp">
 
-            <!-- ASSISTIR vermelho premium -->
+            <!-- ASSISTIR com o mesmo degradê -->
             <Button
                 android:id="@+id/btnPlaySeries"
                 android:layout_width="0dp"
                 android:layout_height="50dp"
                 android:layout_weight="0.7"
-                android:background="@drawable/bg_button_red_round"
+                android:background="@drawable/bg_home_red"
                 android:text="ASSISTIR"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold" />
 
-            <!-- BAIXAR só ícone+texto, sem retângulo -->
+            <!-- BAIXAR só ícone+texto -->
             <LinearLayout
                 android:id="@+id/btnDownloadSeriesArea"
                 android:layout_width="0dp"
