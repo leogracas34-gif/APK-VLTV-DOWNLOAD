@@ -1,5 +1,6 @@
 package com.vltv.play
 
+import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -34,7 +35,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
     private lateinit var rvEpisodes: RecyclerView
     private lateinit var btnFavoriteSeries: ImageButton
 
-    // NOVOS: play + download
     private lateinit var btnPlaySeries: Button
     private lateinit var btnDownloadSeriesArea: LinearLayout
     private lateinit var imgDownloadSeriesState: ImageView
@@ -44,7 +44,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
     private var sortedSeasons: List<String> = emptyList()
     private var currentSeason: String = ""
 
-    // último episódio selecionado (para o botão ASSISTIR / BAIXAR)
     private var currentEpisode: EpisodeStream? = null
 
     private enum class DownloadState { BAIXAR, BAIXANDO, BAIXADO }
@@ -108,7 +107,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
             mostrarSeletorDeTemporada()
         }
 
-        // Botão ASSISTIR: usa o currentEpisode
         btnPlaySeries.setOnClickListener {
             val ep = currentEpisode
             if (ep == null) {
@@ -118,7 +116,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
             abrirPlayer(ep, false)
         }
 
-        // Estado inicial do download
         restaurarEstadoDownload()
 
         btnDownloadSeriesArea.setOnClickListener {
@@ -130,31 +127,39 @@ class SeriesDetailsActivity : AppCompatActivity() {
 
             when (downloadState) {
                 DownloadState.BAIXAR -> {
+                    val episodeId = ep.id.toIntOrNull() ?: 0
+                    if (episodeId == 0) {
+                        Toast.makeText(this, "ID do episódio inválido.", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+
+                    val url = montarUrlEpisodio(ep)
+                    val fileName = "series_${seriesId}_${episodeId}.mp4"
+
+                    DownloadHelper.enqueueDownload(
+                        this,
+                        url,
+                        fileName,
+                        logicalId = "series_$episodeId",
+                        type = "series"
+                    )
+
                     Toast.makeText(
                         this,
-                        "Iniciando download de T${currentSeason}E${ep.episode_num}",
+                        "Baixando T${currentSeason}E${ep.episode_num}",
                         Toast.LENGTH_SHORT
                     ).show()
-                    // Aqui depois entra a lógica real de download
+
                     setDownloadState(DownloadState.BAIXANDO, ep)
                 }
+
                 DownloadState.BAIXANDO -> {
                     val popup = PopupMenu(this, btnDownloadSeriesArea)
-                    popup.menu.add("Pausar download")
-                    popup.menu.add("Ir para downloads")
-                    popup.menu.add("Simular download concluído")
+                    popup.menu.add("Ir para downloads do sistema")
                     popup.setOnMenuItemClickListener { item ->
                         when (item.title) {
-                            "Pausar download" -> {
-                                Toast.makeText(this, "Download pausado", Toast.LENGTH_SHORT).show()
-                                true
-                            }
-                            "Ir para downloads" -> {
-                                Toast.makeText(this, "Abrindo downloads", Toast.LENGTH_SHORT).show()
-                                true
-                            }
-                            "Simular download concluído" -> {
-                                setDownloadState(DownloadState.BAIXADO, ep)
+                            "Ir para downloads do sistema" -> {
+                                startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
                                 true
                             }
                             else -> false
@@ -162,17 +167,16 @@ class SeriesDetailsActivity : AppCompatActivity() {
                     }
                     popup.show()
                 }
+
                 DownloadState.BAIXADO -> {
-                    Toast.makeText(this, "Abrindo downloads", Toast.LENGTH_SHORT).show()
-                    // Futuro: abrir tela de downloads
+                    Toast.makeText(this, "Episódio já baixado.", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
                 }
             }
         }
 
         carregarSeriesInfo()
     }
-
-    // -------- FAVORITOS --------
 
     private fun getFavSeries(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -191,8 +195,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
         val res = if (isFav) R.drawable.ic_star_filled else R.drawable.ic_star_border
         btnFavoriteSeries.setImageResource(res)
     }
-
-    // -------- CARREGAR INFO / EPISÓDIOS --------
 
     private fun carregarSeriesInfo() {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -248,13 +250,13 @@ class SeriesDetailsActivity : AppCompatActivity() {
 
         val lista = episodesBySeason[seasonKey] ?: emptyList()
         if (lista.isNotEmpty()) {
-            currentEpisode = lista.first() // episódio padrão
+            currentEpisode = lista.first()
             restaurarEstadoDownload()
         }
 
-        rvEpisodes.adapter = EpisodeAdapter(lista) { ep, position ->
+        rvEpisodes.adapter = EpisodeAdapter(lista) { ep, _ ->
             currentEpisode = ep
-            restaurarEstadoDownload() // restaura estado do download para esse episódio
+            restaurarEstadoDownload()
             abrirPlayer(ep, true)
         }
     }
@@ -297,7 +299,24 @@ class SeriesDetailsActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // -------- DOWNLOAD VISUAL POR EPISÓDIO --------
+    private fun montarUrlEpisodio(ep: EpisodeStream): String {
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        val user = prefs.getString("username", "") ?: ""
+        val pass = prefs.getString("password", "") ?: ""
+
+        val serverList = listOf(
+            "http://tvblack.shop",
+            "http://redeinternadestiny.top",
+            "http://fibercdn.sbs"
+        )
+        val server = serverList.first()
+
+        val eid = ep.id.toIntOrNull() ?: 0
+        val ext = ep.container_extension ?: "mp4"
+        val finalExt = if (ext.isNotEmpty()) ".$ext" else ""
+
+        return "$server/series/$user/$pass/$eid$finalExt"
+    }
 
     private fun setDownloadState(state: DownloadState, ep: EpisodeStream?) {
         downloadState = state
@@ -349,8 +368,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
         }
         setDownloadState(state, ep)
     }
-
-    // -------- ADAPTER EPISÓDIOS --------
 
     class EpisodeAdapter(
         private val list: List<EpisodeStream>,
