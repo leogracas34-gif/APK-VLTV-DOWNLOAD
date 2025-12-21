@@ -3,12 +3,7 @@ package com.vltv.play
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.PopupMenu
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import retrofit2.Call
@@ -26,10 +21,17 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var btnPlay: Button
     private lateinit var btnFavorite: ImageButton
     private lateinit var btnResume: Button
-    private lateinit var btnDownload: ImageButton
+
+    // área de download
+    private lateinit var btnDownloadArea: LinearLayout
+    private lateinit var imgDownloadState: ImageView
+    private lateinit var tvDownloadState: TextView
 
     private var streamId: Int = 0
     private var extension: String = "mp4"
+
+    private enum class DownloadState { BAIXAR, BAIXANDO, BAIXADO }
+    private var downloadState: DownloadState = DownloadState.BAIXAR
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,7 +52,10 @@ class DetailsActivity : AppCompatActivity() {
         btnPlay = findViewById(R.id.btnPlay)
         btnFavorite = findViewById(R.id.btnFavorite)
         btnResume = findViewById(R.id.btnResume)
-        btnDownload = findViewById(R.id.btnDownload)
+
+        btnDownloadArea = findViewById(R.id.btnDownloadArea)
+        imgDownloadState = findViewById(R.id.imgDownloadState)
+        tvDownloadState = findViewById(R.id.tvDownloadState)
 
         tvTitle.text = name
 
@@ -92,9 +97,23 @@ class DetailsActivity : AppCompatActivity() {
             abrirPlayer(name, startPositionMs = pos)
         }
 
-        // DOWNLOAD – abre menu
-        btnDownload.setOnClickListener {
-            mostrarMenuDownload(name)
+        // restaurar estado de download salvo
+        restaurarEstadoDownload()
+
+        btnDownloadArea.setOnClickListener {
+            when (downloadState) {
+                DownloadState.BAIXAR -> {
+                    // depois aqui entra DownloadManager real
+                    Toast.makeText(this, "Iniciando download de $name", Toast.LENGTH_SHORT).show()
+                    setDownloadState(DownloadState.BAIXANDO)
+                }
+                DownloadState.BAIXANDO -> {
+                    Toast.makeText(this, "Download em andamento...", Toast.LENGTH_SHORT).show()
+                }
+                DownloadState.BAIXADO -> {
+                    Toast.makeText(this, "Abrir Meus downloads (em breve)", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
 
         // Detalhes do painel Xtream
@@ -124,6 +143,40 @@ class DetailsActivity : AppCompatActivity() {
 
         val existe = pos > 30_000L && dur > 0L && pos < (dur * 0.95).toLong()
         btnResume.visibility = if (existe) Button.VISIBLE else Button.GONE
+    }
+
+    // -------- ESTADO DOWNLOAD VISUAL --------
+
+    private fun setDownloadState(state: DownloadState) {
+        downloadState = state
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("download_state_$streamId", state.name).apply()
+
+        when (state) {
+            DownloadState.BAIXAR -> {
+                imgDownloadState.setImageResource(R.drawable.ic_dl_arrow)
+                tvDownloadState.text = "Baixar"
+            }
+            DownloadState.BAIXANDO -> {
+                imgDownloadState.setImageResource(R.drawable.ic_dl_downloading)
+                tvDownloadState.text = "Baixando"
+            }
+            DownloadState.BAIXADO -> {
+                imgDownloadState.setImageResource(R.drawable.ic_dl_done)
+                tvDownloadState.text = "Baixado"
+            }
+        }
+    }
+
+    private fun restaurarEstadoDownload() {
+        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
+        val name = prefs.getString("download_state_$streamId", DownloadState.BAIXAR.name)
+        val state = try {
+            DownloadState.valueOf(name ?: DownloadState.BAIXAR.name)
+        } catch (_: Exception) {
+            DownloadState.BAIXAR
+        }
+        setDownloadState(state)
     }
 
     // ------------ FAVORITOS ------------
@@ -184,7 +237,7 @@ class DetailsActivity : AppCompatActivity() {
             })
     }
 
-    // ------------ DETALHES TMDB (completa o que faltar) ------------
+    // ------------ DETALHES TMDB ------------
 
     private fun carregarDetalhesTmdb(titulo: String) {
         val apiKey = TmdbConfig.API_KEY
@@ -221,69 +274,5 @@ class DetailsActivity : AppCompatActivity() {
                 ) {
                 }
             })
-    }
-
-    // ------------ MENU DOWNLOAD ------------
-
-    private fun mostrarMenuDownload(titulo: String) {
-        val popup = PopupMenu(this, btnDownload)
-        popup.menuInflater.inflate(R.menu.menu_download, popup.menu)
-
-        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
-        val isDownloading = prefs.getBoolean("downloading_$streamId", false)
-
-        popup.menu.findItem(R.id.action_download).isVisible = !isDownloading
-        popup.menu.findItem(R.id.action_pause).isVisible = isDownloading
-        popup.menu.findItem(R.id.action_cancel).isVisible = isDownloading
-
-        popup.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                R.id.action_download -> {
-                    iniciarDownload(titulo)
-                    true
-                }
-                R.id.action_pause -> {
-                    pausarDownload()
-                    true
-                }
-                R.id.action_cancel -> {
-                    cancelarDownload()
-                    true
-                }
-                R.id.action_meus_downloads -> {
-                    abrirMeusDownloads()
-                    true
-                }
-                else -> false
-            }
-        }
-
-        popup.show()
-    }
-
-    private fun iniciarDownload(titulo: String) {
-        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("downloading_$streamId", true).apply()
-        Toast.makeText(this, "Iniciando download de $titulo", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun pausarDownload() {
-        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
-        prefs.edit().putBoolean("downloading_$streamId", false).apply()
-        Toast.makeText(this, "Download pausado", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun cancelarDownload() {
-        val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
-        prefs.edit().remove("downloading_$streamId").apply()
-        Toast.makeText(this, "Download cancelado", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun abrirMeusDownloads() {
-        Toast.makeText(
-            this,
-            "Abrir tela de Meus downloads (ainda não criada)",
-            Toast.LENGTH_LONG
-        ).show()
     }
 }
