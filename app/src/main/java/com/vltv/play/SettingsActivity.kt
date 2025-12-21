@@ -1,3 +1,4 @@
+
 package com.vltv.play
 
 import android.content.Context
@@ -27,8 +28,8 @@ class SettingsActivity : AppCompatActivity() {
         val tvVersion: TextView = findViewById(R.id.tvVersion)
         val cardLogout: LinearLayout = findViewById(R.id.cardLogout)
 
-        // Versão do app via BuildConfig
-        tvVersion.text = "Versão Versão 1.0.0"
+        // Versão fixa do app
+        tvVersion.text = "Versão 1.0.0"
 
         // -------- CONTROLE PARENTAL --------
         switchParental.isChecked = ParentalControlManager.isEnabled(this)
@@ -59,7 +60,9 @@ class SettingsActivity : AppCompatActivity() {
 
         // -------- SOBRE O APLICATIVO --------
         cardAbout.setOnClickListener {
-            val msg = "VLTV PLAY\nVersão ${BuildConfig.VERSION_NAME}\nDesenvolvido por VLTV."
+            val msg = "VLTV PLAY
+Versão 1.0.0
+Desenvolvido por VLTV."
             AlertDialog.Builder(this)
                 .setTitle("Sobre o aplicativo")
                 .setMessage(msg)
