@@ -17,12 +17,15 @@ interface TmdbApi {
     ): Call<TmdbSearchResponse>
 
     companion object {
-        val service: TmdbApi by lazy {
+        private val retrofit: Retrofit by lazy {
             Retrofit.Builder()
                 .baseUrl(TmdbConfig.BASE_URL)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
-                .create(TmdbApi::class.java)
+        }
+
+        val service: TmdbApi by lazy {
+            retrofit.create(TmdbApi::class.java)
         }
     }
 }
