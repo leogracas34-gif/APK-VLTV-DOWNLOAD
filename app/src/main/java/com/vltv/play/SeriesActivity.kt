@@ -30,7 +30,7 @@ class SeriesActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_live_tv) // Usa o mesmo layout de TV/Filmes
+        setContentView(R.layout.activity_live_tv)
 
         rvCategories = findViewById(R.id.rvCategories)
         rvSeries = findViewById(R.id.rvChannels)
@@ -61,7 +61,6 @@ class SeriesActivity : AppCompatActivity() {
                         val originais = response.body()!!
 
                         val categorias = mutableListOf<LiveCategory>()
-                        // Aba fixa de favoritos
                         categorias.add(
                             LiveCategory(
                                 category_id = "FAV_SERIES",
@@ -78,7 +77,6 @@ class SeriesActivity : AppCompatActivity() {
                             }
                         }
 
-                        // Carrega primeira categoria real automaticamente
                         if (categorias.size > 1) {
                             carregarSeries(categorias[1])
                         } else {
@@ -141,8 +139,6 @@ class SeriesActivity : AppCompatActivity() {
             return
         }
 
-        // Carrega todas as séries de uma categoria "geral"
-        // Se o painel não tiver categoria geral, pode escolher uma categoria grande padrão
         XtreamApi.service.getSeries(username, password, categoryId = "0")
             .enqueue(object : Callback<List<SeriesStream>> {
                 override fun onResponse(
@@ -174,15 +170,11 @@ class SeriesActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // ------- FAVORITOS (mesmo esquema da SeriesDetailsActivity) -------
-
     private fun getFavSeries(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val set = prefs.getStringSet("fav_series", emptySet()) ?: emptySet()
         return set.mapNotNull { it.toIntOrNull() }.toMutableSet()
     }
-
-    // --- ADAPTERS ---
 
     class SeriesCategoryAdapter(
         private val list: List<LiveCategory>,
