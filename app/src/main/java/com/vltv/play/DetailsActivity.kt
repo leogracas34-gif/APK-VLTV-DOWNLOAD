@@ -158,7 +158,8 @@ class DetailsActivity : AppCompatActivity() {
                 tvDownloadState.text = "Baixar"
             }
             DownloadState.BAIXANDO -> {
-                imgDownloadState.setImageResource(R.drawable.ic_dl_downloading)
+                // ícone de bolinha / loader, texto branco normal
+                imgDownloadState.setImageResource(R.drawable.ic_dl_loading)
                 tvDownloadState.text = "Baixando"
             }
             DownloadState.BAIXADO -> {
