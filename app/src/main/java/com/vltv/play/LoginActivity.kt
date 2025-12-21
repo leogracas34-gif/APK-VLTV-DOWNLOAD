@@ -117,6 +117,9 @@ class LoginActivity : AppCompatActivity() {
             XtreamApi.setBaseUrl(if (savedDns.endsWith("/")) savedDns else "$savedDns/")
         }
 
+        // REGISTRAR RECEIVER DE DOWNLOADS APÓS LOGIN BEM-SUCEDIDO (ADICIONADO)
+        DownloadHelper.registerReceiver(this)
+
         val intent = Intent(this, HomeActivity::class.java)
         startActivity(intent)
         finish()
