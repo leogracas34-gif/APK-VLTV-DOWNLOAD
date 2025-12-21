@@ -2,14 +2,14 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/action_download"
-        android:title="📥 Baixar"/>
+        android:title="Baixar" />
     <item
         android:id="@+id/action_pause"
-        android:title="⏸️ Pausar Download"/>
+        android:title="Pausar download" />
     <item
         android:id="@+id/action_cancel"
-        android:title="❌ Cancelar Download"/>
+        android:title="Cancelar download" />
     <item
         android:id="@+id/action_meus_downloads"
-        android:title="📱 Meus Downloads"/>
+        android:title="Meus downloads" />
 </menu>
