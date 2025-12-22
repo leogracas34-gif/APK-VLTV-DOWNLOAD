@@ -1,6 +1,5 @@
 package com.vltv.play
 
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -60,7 +59,6 @@ class DetailsActivity : AppCompatActivity() {
         imgDownloadState = findViewById(R.id.imgDownloadState)
         tvDownloadState = findViewById(R.id.tvDownloadState)
 
-        // esconder download em TV / box / Fire TV
         if (isTelevisionDevice()) {
             btnDownloadArea.visibility = View.GONE
         }
@@ -154,7 +152,6 @@ class DetailsActivity : AppCompatActivity() {
         carregarDetalhesTmdb(movieTitle)
     }
 
-    // ✅ ADICIONADO: onResume() para atualizar estado quando voltar na tela
     override fun onResume() {
         super.onResume()
         restaurarEstadoDownload()
@@ -196,20 +193,31 @@ class DetailsActivity : AppCompatActivity() {
         btnResume.visibility = if (existe) Button.VISIBLE else Button.GONE
     }
 
+    // ✅ NOVA: pegar progresso %
+    private fun getProgressText(): String {
+        val progress = DownloadHelper.getDownloadProgress(this, "movie_$streamId")
+        return when (downloadState) {
+            DownloadState.BAIXAR -> "Baixar"
+            DownloadState.BAIXANDO -> "Baixando ${progress}%"
+            DownloadState.BAIXADO -> "Baixado 100%"
+        }
+    }
+
+    // ✅ ATUALIZAR setDownloadState para mostrar %
     private fun setDownloadState(state: DownloadState) {
         downloadState = state
         when (state) {
             DownloadState.BAIXAR -> {
                 imgDownloadState.setImageResource(R.drawable.ic_dl_arrow)
-                tvDownloadState.text = "Baixar"
+                tvDownloadState.text = getProgressText()
             }
             DownloadState.BAIXANDO -> {
                 imgDownloadState.setImageResource(R.drawable.ic_dl_loading)
-                tvDownloadState.text = "Baixando"
+                tvDownloadState.text = getProgressText()
             }
             DownloadState.BAIXADO -> {
                 imgDownloadState.setImageResource(R.drawable.ic_dl_done)
-                tvDownloadState.text = "Baixado"
+                tvDownloadState.text = getProgressText()
             }
         }
         DownloadHelper.setDownloadState(this, "movie_$streamId", state.name)
@@ -225,7 +233,6 @@ class DetailsActivity : AppCompatActivity() {
         setDownloadState(state)
     }
 
-    // FAVORITOS / DETALHES (iguais ao seu)
     private fun getFavMovies(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val set = prefs.getStringSet("fav_movies", emptySet()) ?: emptySet()
