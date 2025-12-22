@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -16,7 +17,6 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
 
 class SeriesDetailsActivity : AppCompatActivity() {
@@ -76,6 +76,12 @@ class SeriesDetailsActivity : AppCompatActivity() {
         tvDownloadEpisodeState = findViewById(R.id.tvDownloadSeriesState)
 
         btnDownloadSeason = findViewById(R.id.btnDownloadSeason)
+
+        // esconder downloads em TV / box / Fire TV
+        if (isTelevisionDevice()) {
+            btnDownloadEpisodeArea.visibility = View.GONE
+            btnDownloadSeason.visibility = View.GONE
+        }
 
         tvTitle.text = seriesName
         tvRating.text = "Nota: $seriesRating"
@@ -140,7 +146,12 @@ class SeriesDetailsActivity : AppCompatActivity() {
                     }
 
                     val url = montarUrlEpisodio(ep)
-                    val fileName = "series_${seriesId}_${episodeId}.mp4"
+
+                    val safeTitle = seriesName
+                        .replace("[^a-zA-Z0-9 _.-]".toRegex(), "_")
+                        .ifBlank { "serie" }
+                    val fileName =
+                        "${safeTitle}_T${currentSeason}E${ep.episode_num}_${episodeId}.mp4"
 
                     DownloadHelper.enqueueDownload(
                         this,
@@ -163,20 +174,28 @@ class SeriesDetailsActivity : AppCompatActivity() {
                     val popup = PopupMenu(this, btnDownloadEpisodeArea)
                     popup.menu.add("Pausar download")
                     popup.menu.add("Cancelar download")
-                    popup.menu.add("Ir para downloads do sistema")
+                    popup.menu.add("Ir para Meus downloads")
 
                     popup.setOnMenuItemClickListener { item ->
                         when (item.title) {
                             "Pausar download" -> {
-                                Toast.makeText(this, "Pausar ainda não implementado.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    this,
+                                    "Pausar ainda não implementado.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 true
                             }
                             "Cancelar download" -> {
-                                Toast.makeText(this, "Cancelar ainda não implementado.", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    this,
+                                    "Cancelar ainda não implementado.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 true
                             }
-                            "Ir para downloads do sistema" -> {
-                                startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
+                            "Ir para Meus downloads" -> {
+                                startActivity(Intent(this, DownloadsActivity::class.java))
                                 true
                             }
                             else -> false
@@ -217,7 +236,7 @@ class SeriesDetailsActivity : AppCompatActivity() {
         carregarSeriesInfo()
     }
 
-    // ------- FAVORITOS -------
+    // FAVORITOS
 
     private fun getFavSeries(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -237,7 +256,7 @@ class SeriesDetailsActivity : AppCompatActivity() {
         btnFavoriteSeries.setImageResource(res)
     }
 
-    // ------- CARREGAR INFO / EPISÓDIOS -------
+    // CARREGAR INFO / EPISÓDIOS
 
     private fun carregarSeriesInfo() {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -366,7 +385,11 @@ class SeriesDetailsActivity : AppCompatActivity() {
         for (ep in lista) {
             val eid = ep.id.toIntOrNull() ?: continue
             val url = montarUrlEpisodio(ep)
-            val fileName = "series_${seriesId}_${eid}.mp4"
+
+            val safeTitle = seriesName
+                .replace("[^a-zA-Z0-9 _.-]".toRegex(), "_")
+                .ifBlank { "serie" }
+            val fileName = "${safeTitle}_T${currentSeason}E${ep.episode_num}_${eid}.mp4"
 
             DownloadHelper.enqueueDownload(
                 this,
