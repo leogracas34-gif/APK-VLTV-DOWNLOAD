@@ -5,7 +5,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.database.Cursor
 import android.net.Uri
 import android.os.Environment
 
@@ -64,12 +63,11 @@ object DownloadHelper {
             .apply()
     }
 
-    // REGISTRAR UMA VEZ na HomeActivity (que vive sempre)
     fun registerReceiver(context: Context) {
         try {
             context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
         } catch (e: Exception) {
-            // Ignora se já registrado
+            // já registrado
         }
     }
 
@@ -79,7 +77,7 @@ object DownloadHelper {
             if (id == -1L) return
 
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            
+
             val logicalId = prefs.all.keys
                 .firstOrNull { key ->
                     key.startsWith(KEY_DM_ID_PREFIX) && prefs.getLong(key, -1L) == id
@@ -90,10 +88,14 @@ object DownloadHelper {
             val query = DownloadManager.Query().setFilterById(id)
             dm.query(query).use { cursor ->
                 if (cursor.moveToFirst()) {
-                    val status = cursor.getInt(cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                    val status = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
+                    )
                     when (status) {
-                        DownloadManager.STATUS_SUCCESSFUL -> setDownloadState(context, logicalId, STATE_BAIXADO)
-                        DownloadManager.STATUS_FAILED -> setDownloadState(context, logicalId, STATE_BAIXAR)
+                        DownloadManager.STATUS_SUCCESSFUL ->
+                            setDownloadState(context, logicalId, STATE_BAIXADO)
+                        DownloadManager.STATUS_FAILED ->
+                            setDownloadState(context, logicalId, STATE_BAIXAR)
                     }
                 }
             }
