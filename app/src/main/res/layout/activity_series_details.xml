@@ -86,7 +86,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- ASSISTIR + BAIXAR -->
+        <!-- ASSISTIR + BAIXAR EPISÓDIO + BAIXAR TEMPORADA -->
         <LinearLayout
             android:id="@+id/layoutPlayDownload"
             android:layout_width="match_parent"
@@ -99,18 +99,18 @@
                 android:id="@+id/btnPlaySeries"
                 android:layout_width="0dp"
                 android:layout_height="50dp"
-                android:layout_weight="0.7"
+                android:layout_weight="0.5"
                 android:background="@drawable/bg_home_red"
                 android:text="ASSISTIR"
                 android:textColor="#FFFFFF"
                 android:textStyle="bold" />
 
-            <!-- BAIXAR só ícone+texto -->
+            <!-- BAIXAR EPISÓDIO: ícone + texto -->
             <LinearLayout
                 android:id="@+id/btnDownloadSeriesArea"
                 android:layout_width="0dp"
                 android:layout_height="50dp"
-                android:layout_weight="0.3"
+                android:layout_weight="0.25"
                 android:layout_marginStart="8dp"
                 android:gravity="center"
                 android:orientation="horizontal"
@@ -133,6 +133,19 @@
                     android:textColor="#FFFFFF"
                     android:textSize="13sp" />
             </LinearLayout>
+
+            <!-- NOVO: BAIXAR TEMPORADA -->
+            <Button
+                android:id="@+id/btnDownloadSeason"
+                android:layout_width="0dp"
+                android:layout_height="50dp"
+                android:layout_weight="0.25"
+                android:layout_marginStart="8dp"
+                android:background="#333333"
+                android:text="Baixar temporada"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <!-- BOTÃO SELETOR DE TEMPORADA + FAVORITO -->
