@@ -85,6 +85,12 @@
             android:screenOrientation="sensorLandscape"
             android:theme="@style/Theme.VLTVPlay" />
 
+        <!-- MEUS DOWNLOADS -->
+        <activity
+            android:name=".DownloadsActivity"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.VLTVPlay" />
+
     </application>
 
 </manifest>
