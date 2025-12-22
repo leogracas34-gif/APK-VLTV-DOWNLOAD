@@ -8,7 +8,6 @@ import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -71,15 +70,10 @@ class SeriesDetailsActivity : AppCompatActivity() {
 
         btnPlaySeries = findViewById(R.id.btnPlaySeries)
 
-        // estes IDs você pode mapear no layout:
-        // btnDownloadSeriesArea = container (LinearLayout) do botão de episódio
-        // imgDownloadSeriesState = ícone dentro
-        // tvDownloadSeriesState = texto "Baixar / Baixando / Baixado"
         btnDownloadEpisodeArea = findViewById(R.id.btnDownloadSeriesArea)
         imgDownloadEpisodeState = findViewById(R.id.imgDownloadSeriesState)
         tvDownloadEpisodeState = findViewById(R.id.tvDownloadSeriesState)
 
-        // novo botão para temporada (adicione um Button no layout com esse id)
         btnDownloadSeason = findViewById(R.id.btnDownloadSeason)
 
         tvTitle.text = seriesName
@@ -164,24 +158,13 @@ class SeriesDetailsActivity : AppCompatActivity() {
                     setDownloadState(DownloadState.BAIXANDO, ep)
                 }
 
+                // Agora não abre mais downloads do sistema
                 DownloadState.BAIXANDO -> {
-                    val popup = PopupMenu(this, btnDownloadEpisodeArea)
-                    popup.menu.add("Ir para downloads do sistema")
-                    popup.setOnMenuItemClickListener { item ->
-                        when (item.title) {
-                            "Ir para downloads do sistema" -> {
-                                startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
-                                true
-                            }
-                            else -> false
-                        }
-                    }
-                    popup.show()
+                    Toast.makeText(this, "Episódio já está baixando.", Toast.LENGTH_SHORT).show()
                 }
 
                 DownloadState.BAIXADO -> {
                     Toast.makeText(this, "Episódio já baixado.", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
                 }
             }
         }
