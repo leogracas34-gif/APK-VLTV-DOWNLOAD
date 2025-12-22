@@ -7,12 +7,15 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Environment
+import android.widget.Toast
+import androidx.core.app.NotificationManagerCompat
 
 object DownloadHelper {
 
     private const val PREFS_NAME = "vltv_prefs"
     private const val KEY_DM_ID_PREFIX = "dm_id_"
     private const val KEY_DL_STATE_PREFIX = "dl_state_"
+    private const val KEY_DL_PROGRESS_PREFIX = "dl_progress_"
 
     const val STATE_BAIXAR = "BAIXAR"
     const val STATE_BAIXANDO = "BAIXANDO"
@@ -30,9 +33,9 @@ object DownloadHelper {
         val request = DownloadManager.Request(uri)
             .setTitle(fileName)
             .setDescription("Baixando $type")
-            .setNotificationVisibility(
-                DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
-            )
+            // ✅ SILENCIOSO - SEM notificação no topo
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
+            .setVisibleInDownloadsUi(false)  // Não aparece na lista Downloads
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(false)
             .setDestinationInExternalFilesDir(
@@ -48,12 +51,18 @@ object DownloadHelper {
         prefs.edit()
             .putLong(KEY_DM_ID_PREFIX + logicalId, downloadId)
             .putString(KEY_DL_STATE_PREFIX + logicalId, STATE_BAIXANDO)
+            .putInt(KEY_DL_PROGRESS_PREFIX + logicalId, 0)
             .apply()
     }
 
     fun getDownloadState(context: Context, logicalId: String): String {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         return prefs.getString(KEY_DL_STATE_PREFIX + logicalId, STATE_BAIXAR) ?: STATE_BAIXAR
+    }
+
+    fun getDownloadProgress(context: Context, logicalId: String): Int {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getInt(KEY_DL_PROGRESS_PREFIX + logicalId, 0)
     }
 
     fun setDownloadState(context: Context, logicalId: String, state: String) {
@@ -63,12 +72,11 @@ object DownloadHelper {
             .apply()
     }
 
-    fun registerReceiver(context: Context) {
-        try {
-            context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-        } catch (e: Exception) {
-            // já registrado
-        }
+    fun updateDownloadProgress(context: Context, logicalId: String, progress: Int) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putInt(KEY_DL_PROGRESS_PREFIX + logicalId, progress)
+            .apply()
     }
 
     private val receiver = object : BroadcastReceiver() {
@@ -77,7 +85,6 @@ object DownloadHelper {
             if (id == -1L) return
 
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
             val logicalId = prefs.all.keys
                 .firstOrNull { key ->
                     key.startsWith(KEY_DM_ID_PREFIX) && prefs.getLong(key, -1L) == id
@@ -92,13 +99,36 @@ object DownloadHelper {
                         cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
                     )
                     when (status) {
-                        DownloadManager.STATUS_SUCCESSFUL ->
+                        DownloadManager.STATUS_SUCCESSFUL -> {
                             setDownloadState(context, logicalId, STATE_BAIXADO)
-                        DownloadManager.STATUS_FAILED ->
+                            updateDownloadProgress(context, logicalId, 100)
+                        }
+                        DownloadManager.STATUS_FAILED -> {
                             setDownloadState(context, logicalId, STATE_BAIXAR)
+                            updateDownloadProgress(context, logicalId, 0)
+                        }
+                        DownloadManager.STATUS_RUNNING -> {
+                            val bytesTotal = cursor.getLong(
+                                cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                            )
+                            if (bytesTotal > 0) {
+                                val bytesDownloaded = cursor.getLong(
+                                    cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                                )
+                                val progress = (bytesDownloaded * 100 / bytesTotal).toInt().coerceAtMost(99)
+                                updateDownloadProgress(context, logicalId, progress)
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+
+    fun registerReceiver(context: Context) {
+        try {
+            context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+            context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        } catch (_: Exception) {}
     }
 }
