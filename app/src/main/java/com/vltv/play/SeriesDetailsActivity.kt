@@ -17,7 +17,6 @@ import com.bumptech.glide.Glide
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import android.util.Log
 
 class SeriesDetailsActivity : AppCompatActivity() {
 
@@ -130,7 +129,8 @@ class SeriesDetailsActivity : AppCompatActivity() {
         btnDownloadEpisodeArea.setOnClickListener {
             val ep = currentEpisode
             if (ep == null) {
-                Toast.makeText(this, "Selecione um episódio para baixar.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Selecione um episódio para baixar.", Toast.LENGTH_SHORT)
+                    .show()
                 return@setOnClickListener
             }
 
@@ -177,6 +177,7 @@ class SeriesDetailsActivity : AppCompatActivity() {
                                 startActivity(Intent(this, DownloadsActivity::class.java))
                                 true
                             }
+
                             else -> false
                         }
                     }
@@ -220,8 +221,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
         restaurarEstadoDownload()
     }
 
-    // favoritos
-
     private fun getFavSeries(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val set = prefs.getStringSet("fav_series", emptySet()) ?: emptySet()
@@ -239,8 +238,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
         val res = if (isFav) R.drawable.ic_star_filled else R.drawable.ic_star_border
         btnFavoriteSeries.setImageResource(res)
     }
-
-    // carregar info / episódios
 
     private fun carregarSeriesInfo() {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -352,16 +349,22 @@ class SeriesDetailsActivity : AppCompatActivity() {
 
         val serverList = listOf(
             "http://tvblack.shop",
-            "http://redeinternadestiny.top",
+            "http://firewallnaousardns.xyz:80",
             "http://fibercdn.sbs"
         )
         val server = serverList.first()
 
         val eid = ep.id.toIntOrNull() ?: 0
         val ext = ep.container_extension ?: "mp4"
-        val finalExt = if (ext.isNotEmpty()) ".$ext" else ""
 
-        return "$server/series/$user/$pass/$eid$finalExt"
+        return montarUrlStream(
+            server = server,
+            streamType = "series",
+            user = user,
+            pass = pass,
+            id = eid,
+            ext = ext
+        )
     }
 
     private fun baixarTemporadaAtual(lista: List<EpisodeStream>) {
@@ -395,12 +398,11 @@ class SeriesDetailsActivity : AppCompatActivity() {
         currentEpisode?.let { setDownloadState(DownloadState.BAIXANDO, it) }
     }
 
-    // ✅ NOVA: pegar progresso % PARA SÉRIES
     private fun getProgressText(): String {
         val ep = currentEpisode ?: return "Baixar episódio"
         val episodeId = ep.id.toIntOrNull() ?: 0
         if (episodeId == 0) return "Baixar episódio"
-        
+
         val progress = DownloadHelper.getDownloadProgress(this, "series_$episodeId")
         return when (downloadState) {
             DownloadState.BAIXAR -> "Baixar episódio"
@@ -409,7 +411,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ ATUALIZAR setDownloadState para mostrar %
     private fun setDownloadState(state: DownloadState, ep: EpisodeStream?) {
         downloadState = state
 
@@ -426,10 +427,12 @@ class SeriesDetailsActivity : AppCompatActivity() {
                 imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_arrow)
                 tvDownloadEpisodeState.text = getProgressText()
             }
+
             DownloadState.BAIXANDO -> {
                 imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_loading)
                 tvDownloadEpisodeState.text = getProgressText()
             }
+
             DownloadState.BAIXADO -> {
                 imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_done)
                 tvDownloadEpisodeState.text = getProgressText()
