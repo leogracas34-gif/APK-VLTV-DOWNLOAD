@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.FitCenter
 import com.vltv.play.databinding.ActivityHomeBinding
+import com.vltv.play.DownloadHelper  // ✅ ADICIONADO IMPORT
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -28,12 +29,13 @@ class HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Receiver de downloads
+        // Receiver de downloads ✅ JÁ ESTÁ CERTO
         DownloadHelper.registerReceiver(this)
 
         setupClicks()
     }
 
+    // resto do código continua EXATAMENTE IGUAL...
     override fun onResume() {
         super.onResume()
         carregarBannerAleatorio()
