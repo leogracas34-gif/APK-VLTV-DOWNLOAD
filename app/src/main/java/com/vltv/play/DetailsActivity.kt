@@ -4,6 +4,7 @@ import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
@@ -30,6 +31,7 @@ class DetailsActivity : AppCompatActivity() {
 
     private var streamId: Int = 0
     private var extension: String = "mp4"
+    private var movieTitle: String = "Sem Título"
 
     private enum class DownloadState { BAIXAR, BAIXANDO, BAIXADO }
     private var downloadState: DownloadState = DownloadState.BAIXAR
@@ -38,7 +40,7 @@ class DetailsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_details)
 
-        val name = intent.getStringExtra("title") ?: "Sem Título"
+        movieTitle = intent.getStringExtra("title") ?: "Sem Título"
         val icon = intent.getStringExtra("icon")
         streamId = intent.getIntExtra("stream_id", 0)
         extension = intent.getStringExtra("extension") ?: "mp4"
@@ -58,7 +60,12 @@ class DetailsActivity : AppCompatActivity() {
         imgDownloadState = findViewById(R.id.imgDownloadState)
         tvDownloadState = findViewById(R.id.tvDownloadState)
 
-        tvTitle.text = name
+        // esconder download em TV / box / Fire TV
+        if (isTelevisionDevice()) {
+            btnDownloadArea.visibility = View.GONE
+        }
+
+        tvTitle.text = movieTitle
 
         Glide.with(this)
             .load(icon)
@@ -85,7 +92,7 @@ class DetailsActivity : AppCompatActivity() {
         configurarBotaoResume()
 
         btnPlay.setOnClickListener {
-            abrirPlayer(name, startPositionMs = 0L)
+            abrirPlayer(movieTitle, startPositionMs = 0L)
         }
         btnPlay.requestFocus()
 
@@ -93,7 +100,7 @@ class DetailsActivity : AppCompatActivity() {
             val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
             val keyBase = "movie_resume_$streamId"
             val pos = prefs.getLong("${keyBase}_pos", 0L)
-            abrirPlayer(name, startPositionMs = pos)
+            abrirPlayer(movieTitle, startPositionMs = pos)
         }
 
         restaurarEstadoDownload()
@@ -102,7 +109,11 @@ class DetailsActivity : AppCompatActivity() {
             when (downloadState) {
                 DownloadState.BAIXAR -> {
                     val url = montarUrlFilme()
-                    val fileName = "movie_$streamId.$extension"
+
+                    val safeTitle = movieTitle
+                        .replace("[^a-zA-Z0-9 _.-]".toRegex(), "_")
+                        .ifBlank { "movie" }
+                    val fileName = "${safeTitle}_$streamId.$extension"
 
                     DownloadHelper.enqueueDownload(
                         this,
@@ -120,7 +131,7 @@ class DetailsActivity : AppCompatActivity() {
                     val popup = PopupMenu(this, btnDownloadArea)
                     popup.menu.add("Pausar download")
                     popup.menu.add("Cancelar download")
-                    popup.menu.add("Ir para downloads do sistema")
+                    popup.menu.add("Ir para Meus downloads")
 
                     popup.setOnMenuItemClickListener { item ->
                         when (item.title) {
@@ -140,8 +151,8 @@ class DetailsActivity : AppCompatActivity() {
                                 ).show()
                                 true
                             }
-                            "Ir para downloads do sistema" -> {
-                                startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
+                            "Ir para Meus downloads" -> {
+                                startActivity(Intent(this, DownloadsActivity::class.java))
                                 true
                             }
                             else -> false
@@ -157,7 +168,7 @@ class DetailsActivity : AppCompatActivity() {
         }
 
         carregarDetalhes(streamId)
-        carregarDetalhesTmdb(name)
+        carregarDetalhesTmdb(movieTitle)
     }
 
     private fun montarUrlFilme(): String {
@@ -225,7 +236,7 @@ class DetailsActivity : AppCompatActivity() {
         setDownloadState(state)
     }
 
-    // --- FAVORITOS / DETALHES ---
+    // FAVORITOS / DETALHES (iguais ao seu)
 
     private fun getFavMovies(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
