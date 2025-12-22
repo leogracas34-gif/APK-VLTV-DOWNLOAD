@@ -129,28 +129,10 @@ class DetailsActivity : AppCompatActivity() {
 
                 DownloadState.BAIXANDO -> {
                     val popup = PopupMenu(this, btnDownloadArea)
-                    popup.menu.add("Pausar download")
-                    popup.menu.add("Cancelar download")
                     popup.menu.add("Ir para Meus downloads")
 
                     popup.setOnMenuItemClickListener { item ->
                         when (item.title) {
-                            "Pausar download" -> {
-                                Toast.makeText(
-                                    this,
-                                    "Pausar ainda não implementado.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                true
-                            }
-                            "Cancelar download" -> {
-                                Toast.makeText(
-                                    this,
-                                    "Cancelar ainda não implementado.",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                true
-                            }
                             "Ir para Meus downloads" -> {
                                 startActivity(Intent(this, DownloadsActivity::class.java))
                                 true
@@ -163,12 +145,19 @@ class DetailsActivity : AppCompatActivity() {
 
                 DownloadState.BAIXADO -> {
                     Toast.makeText(this, "Arquivo já baixado", Toast.LENGTH_SHORT).show()
+                    startActivity(Intent(this, DownloadsActivity::class.java))
                 }
             }
         }
 
         carregarDetalhes(streamId)
         carregarDetalhesTmdb(movieTitle)
+    }
+
+    // ✅ ADICIONADO: onResume() para atualizar estado quando voltar na tela
+    override fun onResume() {
+        super.onResume()
+        restaurarEstadoDownload()
     }
 
     private fun montarUrlFilme(): String {
@@ -237,7 +226,6 @@ class DetailsActivity : AppCompatActivity() {
     }
 
     // FAVORITOS / DETALHES (iguais ao seu)
-
     private fun getFavMovies(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val set = prefs.getStringSet("fav_movies", emptySet()) ?: emptySet()
