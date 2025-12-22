@@ -230,8 +230,14 @@ class PlayerActivity : AppCompatActivity() {
         val user = prefs.getString("username", "") ?: ""
         val pass = prefs.getString("password", "") ?: ""
 
-        val finalExt = if (currentExt.isNotEmpty()) ".$currentExt" else ""
-        val url = "$currentServer/$streamType/$user/$pass/$streamId$finalExt"
+        val url = montarUrlStream(
+            server = currentServer,
+            streamType = streamType,
+            user = user,
+            pass = pass,
+            id = streamId,
+            ext = currentExt
+        )
 
         player?.release()
 
