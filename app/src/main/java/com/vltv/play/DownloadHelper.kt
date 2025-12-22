@@ -8,7 +8,6 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Environment
 import android.widget.Toast
-import androidx.core.app.NotificationManagerCompat
 
 object DownloadHelper {
 
@@ -35,7 +34,7 @@ object DownloadHelper {
             .setDescription("Baixando $type")
             // ✅ SILENCIOSO - SEM notificação no topo
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
-            .setVisibleInDownloadsUi(false)  // Não aparece na lista Downloads
+            .setVisibleInDownloadsUi(false)
             .setAllowedOverMetered(true)
             .setAllowedOverRoaming(false)
             .setDestinationInExternalFilesDir(
@@ -53,6 +52,8 @@ object DownloadHelper {
             .putString(KEY_DL_STATE_PREFIX + logicalId, STATE_BAIXANDO)
             .putInt(KEY_DL_PROGRESS_PREFIX + logicalId, 0)
             .apply()
+
+        Toast.makeText(context, "Download iniciado: $fileName", Toast.LENGTH_SHORT).show()
     }
 
     fun getDownloadState(context: Context, logicalId: String): String {
@@ -79,25 +80,31 @@ object DownloadHelper {
             .apply()
     }
 
+    // ✅ BroadcastReceiver SIMPLIFICADO (sem crash)
     private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
-            if (id == -1L) return
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: return
+            if (id == -1L || context == null) return
 
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            
+            // Encontra logicalId pelo downloadId
             val logicalId = prefs.all.keys
                 .firstOrNull { key ->
-                    key.startsWith(KEY_DM_ID_PREFIX) && prefs.getLong(key, -1L) == id
+                    key.startsWith(KEY_DM_ID_PREFIX) && 
+                    prefs.getLong(key, -1L) == id
                 }
                 ?.removePrefix(KEY_DM_ID_PREFIX) ?: return
 
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
             val query = DownloadManager.Query().setFilterById(id)
+            
             dm.query(query).use { cursor ->
                 if (cursor.moveToFirst()) {
                     val status = cursor.getInt(
                         cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
                     )
+                    
                     when (status) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             setDownloadState(context, logicalId, STATE_BAIXADO)
@@ -107,18 +114,6 @@ object DownloadHelper {
                             setDownloadState(context, logicalId, STATE_BAIXAR)
                             updateDownloadProgress(context, logicalId, 0)
                         }
-                        DownloadManager.STATUS_RUNNING -> {
-                            val bytesTotal = cursor.getLong(
-                                cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                            )
-                            if (bytesTotal > 0) {
-                                val bytesDownloaded = cursor.getLong(
-                                    cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                                )
-                                val progress = (bytesDownloaded * 100 / bytesTotal).toInt().coerceAtMost(99)
-                                updateDownloadProgress(context, logicalId, progress)
-                            }
-                        }
                     }
                 }
             }
@@ -127,8 +122,12 @@ object DownloadHelper {
 
     fun registerReceiver(context: Context) {
         try {
-            context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-            context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-        } catch (_: Exception) {}
+            context.registerReceiver(
+                receiver, 
+                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+            )
+        } catch (e: Exception) {
+            // Ignora erro de registro duplicado
+        }
     }
 }
