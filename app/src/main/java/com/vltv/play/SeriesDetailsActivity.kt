@@ -36,9 +36,11 @@ class SeriesDetailsActivity : AppCompatActivity() {
     private lateinit var btnFavoriteSeries: ImageButton
 
     private lateinit var btnPlaySeries: Button
-    private lateinit var btnDownloadSeriesArea: LinearLayout
-    private lateinit var imgDownloadSeriesState: ImageView
-    private lateinit var tvDownloadSeriesState: TextView
+    private lateinit var btnDownloadEpisodeArea: LinearLayout
+    private lateinit var imgDownloadEpisodeState: ImageView
+    private lateinit var tvDownloadEpisodeState: TextView
+
+    private lateinit var btnDownloadSeason: Button
 
     private var episodesBySeason: Map<String, List<EpisodeStream>> = emptyMap()
     private var sortedSeasons: List<String> = emptyList()
@@ -68,9 +70,17 @@ class SeriesDetailsActivity : AppCompatActivity() {
         btnFavoriteSeries = findViewById(R.id.btnFavoriteSeries)
 
         btnPlaySeries = findViewById(R.id.btnPlaySeries)
-        btnDownloadSeriesArea = findViewById(R.id.btnDownloadSeriesArea)
-        imgDownloadSeriesState = findViewById(R.id.imgDownloadSeriesState)
-        tvDownloadSeriesState = findViewById(R.id.tvDownloadSeriesState)
+
+        // estes IDs você pode mapear no layout:
+        // btnDownloadSeriesArea = container (LinearLayout) do botão de episódio
+        // imgDownloadSeriesState = ícone dentro
+        // tvDownloadSeriesState = texto "Baixar / Baixando / Baixado"
+        btnDownloadEpisodeArea = findViewById(R.id.btnDownloadSeriesArea)
+        imgDownloadEpisodeState = findViewById(R.id.imgDownloadSeriesState)
+        tvDownloadEpisodeState = findViewById(R.id.tvDownloadSeriesState)
+
+        // novo botão para temporada (adicione um Button no layout com esse id)
+        btnDownloadSeason = findViewById(R.id.btnDownloadSeason)
 
         tvTitle.text = seriesName
         tvRating.text = "Nota: $seriesRating"
@@ -118,7 +128,8 @@ class SeriesDetailsActivity : AppCompatActivity() {
 
         restaurarEstadoDownload()
 
-        btnDownloadSeriesArea.setOnClickListener {
+        // BOTÃO 1: BAIXAR EPISÓDIO ATUAL
+        btnDownloadEpisodeArea.setOnClickListener {
             val ep = currentEpisode
             if (ep == null) {
                 Toast.makeText(this, "Selecione um episódio para baixar.", Toast.LENGTH_SHORT).show()
@@ -146,7 +157,7 @@ class SeriesDetailsActivity : AppCompatActivity() {
 
                     Toast.makeText(
                         this,
-                        "Baixando T${currentSeason}E${ep.episode_num}",
+                        "Baixando episódio T${currentSeason}E${ep.episode_num}",
                         Toast.LENGTH_SHORT
                     ).show()
 
@@ -154,7 +165,7 @@ class SeriesDetailsActivity : AppCompatActivity() {
                 }
 
                 DownloadState.BAIXANDO -> {
-                    val popup = PopupMenu(this, btnDownloadSeriesArea)
+                    val popup = PopupMenu(this, btnDownloadEpisodeArea)
                     popup.menu.add("Ir para downloads do sistema")
                     popup.setOnMenuItemClickListener { item ->
                         when (item.title) {
@@ -175,8 +186,33 @@ class SeriesDetailsActivity : AppCompatActivity() {
             }
         }
 
+        // BOTÃO 2: BAIXAR TEMPORADA ATUAL (TODOS EPISÓDIOS)
+        btnDownloadSeason.setOnClickListener {
+            if (currentSeason.isBlank()) {
+                Toast.makeText(this, "Nenhuma temporada selecionada.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val lista = episodesBySeason[currentSeason] ?: emptyList()
+            if (lista.isEmpty()) {
+                Toast.makeText(this, "Sem episódios nesta temporada.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            AlertDialog.Builder(this)
+                .setTitle("Baixar temporada")
+                .setMessage("Baixar todos os ${lista.size} episódios da temporada $currentSeason?")
+                .setPositiveButton("Sim") { _, _ ->
+                    baixarTemporadaAtual(lista)
+                }
+                .setNegativeButton("Não", null)
+                .show()
+        }
+
         carregarSeriesInfo()
     }
+
+    // FAVORITOS
 
     private fun getFavSeries(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -195,6 +231,8 @@ class SeriesDetailsActivity : AppCompatActivity() {
         val res = if (isFav) R.drawable.ic_star_filled else R.drawable.ic_star_border
         btnFavoriteSeries.setImageResource(res)
     }
+
+    // CARREGAR INFO / EPISÓDIOS
 
     private fun carregarSeriesInfo() {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -318,6 +356,34 @@ class SeriesDetailsActivity : AppCompatActivity() {
         return "$server/series/$user/$pass/$eid$finalExt"
     }
 
+    // Baixar todos episódios da temporada atual
+    private fun baixarTemporadaAtual(lista: List<EpisodeStream>) {
+        var count = 0
+        for (ep in lista) {
+            val eid = ep.id.toIntOrNull() ?: continue
+            val url = montarUrlEpisodio(ep)
+            val fileName = "series_${seriesId}_${eid}.mp4"
+
+            DownloadHelper.enqueueDownload(
+                this,
+                url,
+                fileName,
+                logicalId = "series_$eid",
+                type = "series"
+            )
+
+            count++
+        }
+
+        Toast.makeText(
+            this,
+            "Baixando $count episódios da temporada $currentSeason",
+            Toast.LENGTH_LONG
+        ).show()
+
+        currentEpisode?.let { setDownloadState(DownloadState.BAIXANDO, it) }
+    }
+
     private fun setDownloadState(state: DownloadState, ep: EpisodeStream?) {
         downloadState = state
 
@@ -331,16 +397,16 @@ class SeriesDetailsActivity : AppCompatActivity() {
 
         when (state) {
             DownloadState.BAIXAR -> {
-                imgDownloadSeriesState.setImageResource(R.drawable.ic_dl_arrow)
-                tvDownloadSeriesState.text = "Baixar"
+                imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_arrow)
+                tvDownloadEpisodeState.text = "Baixar episódio"
             }
             DownloadState.BAIXANDO -> {
-                imgDownloadSeriesState.setImageResource(R.drawable.ic_dl_loading)
-                tvDownloadSeriesState.text = "Baixando"
+                imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_loading)
+                tvDownloadEpisodeState.text = "Baixando episódio"
             }
             DownloadState.BAIXADO -> {
-                imgDownloadSeriesState.setImageResource(R.drawable.ic_dl_done)
-                tvDownloadSeriesState.text = "Baixado"
+                imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_done)
+                tvDownloadEpisodeState.text = "Episódio baixado"
             }
         }
     }
