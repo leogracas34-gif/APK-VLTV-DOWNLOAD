@@ -103,6 +103,7 @@ class DetailsActivity : AppCompatActivity() {
                 DownloadState.BAIXAR -> {
                     val url = montarUrlFilme()
                     val fileName = "movie_$streamId.$extension"
+
                     DownloadHelper.enqueueDownload(
                         this,
                         url,
@@ -110,21 +111,47 @@ class DetailsActivity : AppCompatActivity() {
                         logicalId = "movie_$streamId",
                         type = "movie"
                     )
+
                     Toast.makeText(this, "Download iniciado", Toast.LENGTH_SHORT).show()
                     setDownloadState(DownloadState.BAIXANDO)
                 }
+
                 DownloadState.BAIXANDO -> {
                     val popup = PopupMenu(this, btnDownloadArea)
+                    popup.menu.add("Pausar download")
+                    popup.menu.add("Cancelar download")
                     popup.menu.add("Ir para downloads do sistema")
-                    popup.setOnMenuItemClickListener {
-                        startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
-                        true
+
+                    popup.setOnMenuItemClickListener { item ->
+                        when (item.title) {
+                            "Pausar download" -> {
+                                Toast.makeText(
+                                    this,
+                                    "Pausar ainda não implementado.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                true
+                            }
+                            "Cancelar download" -> {
+                                Toast.makeText(
+                                    this,
+                                    "Cancelar ainda não implementado.",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                true
+                            }
+                            "Ir para downloads do sistema" -> {
+                                startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
+                                true
+                            }
+                            else -> false
+                        }
                     }
                     popup.show()
                 }
+
                 DownloadState.BAIXADO -> {
                     Toast.makeText(this, "Arquivo já baixado", Toast.LENGTH_SHORT).show()
-                    startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
                 }
             }
         }
@@ -195,24 +222,10 @@ class DetailsActivity : AppCompatActivity() {
         } catch (_: Exception) {
             DownloadState.BAIXAR
         }
-        downloadState = state
-        when (state) {
-            DownloadState.BAIXAR -> {
-                imgDownloadState.setImageResource(R.drawable.ic_dl_arrow)
-                tvDownloadState.text = "Baixar"
-            }
-            DownloadState.BAIXANDO -> {
-                imgDownloadState.setImageResource(R.drawable.ic_dl_loading)
-                tvDownloadState.text = "Baixando"
-            }
-            DownloadState.BAIXADO -> {
-                imgDownloadState.setImageResource(R.drawable.ic_dl_done)
-                tvDownloadState.text = "Baixado"
-            }
-        }
+        setDownloadState(state)
     }
 
-    // --- FAVORITOS / DETALHES (mesmo código que você já tinha) ---
+    // --- FAVORITOS / DETALHES ---
 
     private fun getFavMovies(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -235,7 +248,7 @@ class DetailsActivity : AppCompatActivity() {
     private fun carregarDetalhes(streamId: Int) {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
         val username = prefs.getString("username", "") ?: ""
-        val password = prefs.getString("password", "") ?: ""
+        the password = prefs.getString("password", "") ?: ""
 
         XtreamApi.service.getVodInfo(username, password, vodId = streamId)
             .enqueue(object : Callback<VodInfoResponse> {
