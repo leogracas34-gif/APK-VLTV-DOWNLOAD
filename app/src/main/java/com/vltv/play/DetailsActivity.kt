@@ -11,7 +11,6 @@ import com.bumptech.glide.Glide
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import android.util.Log
 
 class DetailsActivity : AppCompatActivity() {
 
@@ -136,6 +135,7 @@ class DetailsActivity : AppCompatActivity() {
                                 startActivity(Intent(this, DownloadsActivity::class.java))
                                 true
                             }
+
                             else -> false
                         }
                     }
@@ -169,8 +169,15 @@ class DetailsActivity : AppCompatActivity() {
             "http://fibercdn.sbs"
         )
         val server = serverList.first()
-        val finalExt = if (extension.isNotEmpty()) ".$extension" else ""
-        return "$server/movie/$user/$pass/$streamId$finalExt"
+
+        return montarUrlStream(
+            server = server,
+            streamType = "movie",
+            user = user,
+            pass = pass,
+            id = streamId,
+            ext = extension
+        )
     }
 
     private fun abrirPlayer(name: String, startPositionMs: Long) {
@@ -194,7 +201,6 @@ class DetailsActivity : AppCompatActivity() {
         btnResume.visibility = if (existe) Button.VISIBLE else Button.GONE
     }
 
-    // ✅ NOVA: pegar progresso %
     private fun getProgressText(): String {
         val progress = DownloadHelper.getDownloadProgress(this, "movie_$streamId")
         return when (downloadState) {
@@ -204,7 +210,6 @@ class DetailsActivity : AppCompatActivity() {
         }
     }
 
-    // ✅ ATUALIZAR setDownloadState para mostrar %
     private fun setDownloadState(state: DownloadState) {
         downloadState = state
         when (state) {
@@ -212,10 +217,12 @@ class DetailsActivity : AppCompatActivity() {
                 imgDownloadState.setImageResource(R.drawable.ic_dl_arrow)
                 tvDownloadState.text = getProgressText()
             }
+
             DownloadState.BAIXANDO -> {
                 imgDownloadState.setImageResource(R.drawable.ic_dl_loading)
                 tvDownloadState.text = getProgressText()
             }
+
             DownloadState.BAIXADO -> {
                 imgDownloadState.setImageResource(R.drawable.ic_dl_done)
                 tvDownloadState.text = getProgressText()
