@@ -41,17 +41,21 @@ class DownloadsActivity : AppCompatActivity() {
             tvEmpty.visibility = View.GONE
             rvDownloads.visibility = View.VISIBLE
             rvDownloads.adapter = DownloadedFileAdapter(files) { file ->
-                abrirArquivo(file)
+                abrirArquivoNoPlayer(file)
             }
         }
     }
 
-    private fun abrirArquivo(file: File) {
+    // Abre o vídeo usando o PlayerActivity do app (offline)
+    private fun abrirArquivoNoPlayer(file: File) {
         val uri = Uri.fromFile(file)
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.setDataAndType(uri, "video/*")
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        startActivity(Intent.createChooser(intent, "Reproduzir vídeo com"))
+
+        val intent = Intent(this, PlayerActivity::class.java).apply {
+            putExtra("stream_type", "vod_offline")
+            putExtra("offline_uri", uri.toString())
+            putExtra("channel_name", file.name)
+        }
+        startActivity(intent)
     }
 
     class DownloadedFileAdapter(
@@ -73,7 +77,7 @@ class DownloadsActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: VH, position: Int) {
             val file = files[position]
             holder.tvName.text = file.name
-            holder.tvPath.text = file.absolutePath
+            holder.tvPath.text = "Disponível offline"
             holder.itemView.setOnClickListener { onClick(file) }
         }
 
