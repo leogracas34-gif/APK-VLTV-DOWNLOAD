@@ -48,6 +48,9 @@ class PlayerActivity : AppCompatActivity() {
     private var nextChannelName: String? = null
     private var startPositionMs: Long = 0L
 
+    // para offline
+    private var offlineUri: String? = null
+
     private val serverList = listOf(
         "http://tvblack.shop",
         "http://firewallnaousardns.xyz:80",
@@ -107,6 +110,9 @@ class PlayerActivity : AppCompatActivity() {
         nextStreamId = intent.getIntExtra("next_stream_id", 0)
         nextChannelName = intent.getStringExtra("next_channel_name")
 
+        // offline
+        offlineUri = intent.getStringExtra("offline_uri")
+
         val channelName = intent.getStringExtra("channel_name") ?: ""
         tvChannelName.text = if (channelName.isNotBlank()) channelName else "Canal"
 
@@ -164,6 +170,45 @@ class PlayerActivity : AppCompatActivity() {
 
     @OptIn(UnstableApi::class)
     private fun iniciarPlayer() {
+        // modo offline: ignora servidores
+        if (streamType == "vod_offline") {
+            val uriStr = offlineUri
+            if (uriStr.isNullOrBlank()) {
+                Toast.makeText(this, "Arquivo offline inválido.", Toast.LENGTH_LONG).show()
+                loading.visibility = View.GONE
+                return
+            }
+
+            player?.release()
+
+            player = ExoPlayer.Builder(this).build()
+            playerView.player = player
+
+            val mediaItem = MediaItem.fromUri(Uri.parse(uriStr))
+            player?.setMediaItem(mediaItem)
+            player?.prepare()
+            player?.playWhenReady = true
+
+            player?.addListener(object : Player.Listener {
+                override fun onPlaybackStateChanged(state: Int) {
+                    when (state) {
+                        Player.STATE_READY -> loading.visibility = View.GONE
+                        Player.STATE_BUFFERING -> loading.visibility = View.VISIBLE
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    Toast.makeText(
+                        this@PlayerActivity,
+                        "Erro ao reproduzir arquivo offline.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            })
+            return
+        }
+
+        // fluxo normal (live / movie / series)
         if (extIndex >= extensoesTentativa.size) {
             serverIndex++
             extIndex = 0
