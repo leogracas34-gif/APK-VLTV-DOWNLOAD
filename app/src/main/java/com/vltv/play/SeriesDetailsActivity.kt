@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
@@ -158,9 +159,30 @@ class SeriesDetailsActivity : AppCompatActivity() {
                     setDownloadState(DownloadState.BAIXANDO, ep)
                 }
 
-                // Agora não abre mais downloads do sistema
                 DownloadState.BAIXANDO -> {
-                    Toast.makeText(this, "Episódio já está baixando.", Toast.LENGTH_SHORT).show()
+                    val popup = PopupMenu(this, btnDownloadEpisodeArea)
+                    popup.menu.add("Pausar download")
+                    popup.menu.add("Cancelar download")
+                    popup.menu.add("Ir para downloads do sistema")
+
+                    popup.setOnMenuItemClickListener { item ->
+                        when (item.title) {
+                            "Pausar download" -> {
+                                Toast.makeText(this, "Pausar ainda não implementado.", Toast.LENGTH_SHORT).show()
+                                true
+                            }
+                            "Cancelar download" -> {
+                                Toast.makeText(this, "Cancelar ainda não implementado.", Toast.LENGTH_SHORT).show()
+                                true
+                            }
+                            "Ir para downloads do sistema" -> {
+                                startActivity(Intent(DownloadManager.ACTION_VIEW_DOWNLOADS))
+                                true
+                            }
+                            else -> false
+                        }
+                    }
+                    popup.show()
                 }
 
                 DownloadState.BAIXADO -> {
@@ -169,7 +191,7 @@ class SeriesDetailsActivity : AppCompatActivity() {
             }
         }
 
-        // BOTÃO 2: BAIXAR TEMPORADA ATUAL (TODOS EPISÓDIOS)
+        // BOTÃO 2: BAIXAR TEMPORADA ATUAL
         btnDownloadSeason.setOnClickListener {
             if (currentSeason.isBlank()) {
                 Toast.makeText(this, "Nenhuma temporada selecionada.", Toast.LENGTH_SHORT).show()
@@ -195,7 +217,7 @@ class SeriesDetailsActivity : AppCompatActivity() {
         carregarSeriesInfo()
     }
 
-    // FAVORITOS
+    // ------- FAVORITOS -------
 
     private fun getFavSeries(context: Context): MutableSet<Int> {
         val prefs = context.getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -215,7 +237,7 @@ class SeriesDetailsActivity : AppCompatActivity() {
         btnFavoriteSeries.setImageResource(res)
     }
 
-    // CARREGAR INFO / EPISÓDIOS
+    // ------- CARREGAR INFO / EPISÓDIOS -------
 
     private fun carregarSeriesInfo() {
         val prefs = getSharedPreferences("vltv_prefs", Context.MODE_PRIVATE)
@@ -339,7 +361,6 @@ class SeriesDetailsActivity : AppCompatActivity() {
         return "$server/series/$user/$pass/$eid$finalExt"
     }
 
-    // Baixar todos episódios da temporada atual
     private fun baixarTemporadaAtual(lista: List<EpisodeStream>) {
         var count = 0
         for (ep in lista) {
