@@ -394,6 +394,21 @@ class SeriesDetailsActivity : AppCompatActivity() {
         currentEpisode?.let { setDownloadState(DownloadState.BAIXANDO, it) }
     }
 
+    // ✅ NOVA: pegar progresso % PARA SÉRIES
+    private fun getProgressText(): String {
+        val ep = currentEpisode ?: return "Baixar episódio"
+        val episodeId = ep.id.toIntOrNull() ?: 0
+        if (episodeId == 0) return "Baixar episódio"
+        
+        val progress = DownloadHelper.getDownloadProgress(this, "series_$episodeId")
+        return when (downloadState) {
+            DownloadState.BAIXAR -> "Baixar episódio"
+            DownloadState.BAIXANDO -> "Baixando ${progress}%"
+            DownloadState.BAIXADO -> "Baixado 100%"
+        }
+    }
+
+    // ✅ ATUALIZAR setDownloadState para mostrar %
     private fun setDownloadState(state: DownloadState, ep: EpisodeStream?) {
         downloadState = state
 
@@ -408,15 +423,15 @@ class SeriesDetailsActivity : AppCompatActivity() {
         when (state) {
             DownloadState.BAIXAR -> {
                 imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_arrow)
-                tvDownloadEpisodeState.text = "Baixar episódio"
+                tvDownloadEpisodeState.text = getProgressText()
             }
             DownloadState.BAIXANDO -> {
                 imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_loading)
-                tvDownloadEpisodeState.text = "Baixando episódio"
+                tvDownloadEpisodeState.text = getProgressText()
             }
             DownloadState.BAIXADO -> {
                 imgDownloadEpisodeState.setImageResource(R.drawable.ic_dl_done)
-                tvDownloadEpisodeState.text = "Episódio baixado"
+                tvDownloadEpisodeState.text = getProgressText()
             }
         }
     }
