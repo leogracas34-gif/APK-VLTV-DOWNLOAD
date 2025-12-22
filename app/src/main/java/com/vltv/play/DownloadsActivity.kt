@@ -46,7 +46,6 @@ class DownloadsActivity : AppCompatActivity() {
         }
     }
 
-    // Abre o vídeo usando o PlayerActivity do app (offline)
     private fun abrirArquivoNoPlayer(file: File) {
         val uri = Uri.fromFile(file)
 
