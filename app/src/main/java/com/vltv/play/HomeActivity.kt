@@ -28,7 +28,7 @@ class HomeActivity : AppCompatActivity() {
         binding = ActivityHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // REGISTRAR RECEIVER DE DOWNLOADS (FUNCIONA SEM CRASH)
+        // Receiver de downloads
         DownloadHelper.registerReceiver(this)
 
         setupClicks()
@@ -70,16 +70,17 @@ class HomeActivity : AppCompatActivity() {
             }
         }
 
-        // Botão de configurações
+        // Botão de configurações / menu
         binding.btnSettings.setOnClickListener {
-            val itens = arrayOf("Configurações", "Sair")
+            val itens = arrayOf("Meus downloads", "Configurações", "Sair")
 
             AlertDialog.Builder(this)
                 .setTitle("Opções")
                 .setItems(itens) { _, which ->
                     when (which) {
-                        0 -> startActivity(Intent(this, SettingsActivity::class.java))
-                        1 -> mostrarDialogoSair()
+                        0 -> startActivity(Intent(this, DownloadsActivity::class.java))
+                        1 -> startActivity(Intent(this, SettingsActivity::class.java))
+                        2 -> mostrarDialogoSair()
                     }
                 }
                 .show()
