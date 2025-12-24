@@ -91,7 +91,14 @@ class PlayerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_player)
-
+        
+        // === FULLSCREEN MODE - REMOVE BARRA DE STATUS (BATERIA/RELÓGIO) ===
+        window.decorView.systemUiVisibility = 
+            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+            View.SYSTEM_UI_FLAG_FULLSCREEN or
+            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        // ==================================================================
+        
         playerView = findViewById(R.id.playerView)
         loading = findViewById(R.id.loading)
         tvChannelName = findViewById(R.id.tvChannelName)
@@ -165,6 +172,18 @@ class PlayerActivity : AppCompatActivity() {
 
         if (streamType == "series" && nextStreamId != 0) {
             handler.post(nextChecker)
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            // === MANTÉM FULLSCREEN EM ANDROID 11+ ===
+            window.decorView.systemUiVisibility = 
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                View.SYSTEM_UI_FLAG_FULLSCREEN or
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            // =======================================
         }
     }
 
